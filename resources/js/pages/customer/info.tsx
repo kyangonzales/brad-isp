@@ -197,7 +197,6 @@ export default function Info({ customer }: { customer: Customer }) {
                                             onChange={(e) => setNotes(e.target.value)}
                                             placeholder="Type notes here..."
                                             className="min-h-[120px] resize-y"
-                                            required
                                         />
                                         <DialogFooter className="mt-6 flex justify-end gap-3">
                                             <DialogClose asChild>
@@ -205,6 +204,15 @@ export default function Info({ customer }: { customer: Customer }) {
                                                     Cancel
                                                 </Button>
                                             </DialogClose>
+
+                                            <Button
+                                                type="button"
+                                                onClick={() => setNotes('')}
+                                                className="rounded-md bg-red-500 px-5 py-2 text-white hover:bg-red-600"
+                                            >
+                                                Clear Notes
+                                            </Button>
+
                                             <Button type="submit" className="rounded-md bg-blue-600 px-5 py-2 hover:bg-blue-700">
                                                 Save Notes
                                             </Button>

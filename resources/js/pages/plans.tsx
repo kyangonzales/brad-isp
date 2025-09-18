@@ -167,7 +167,7 @@ export default function Plans() {
                     className="flex items-center gap-2 rounded-md bg-[#1D3795] px-4 py-2 text-white hover:bg-[#162C7D] hover:text-white"
                     onClick={openAddModal}
                 >
-                    <Plus className="h-5 w-5" /> Add New Plasn
+                    <Plus className="h-5 w-5" /> Add New Plan
                 </Button>
             </div>
 

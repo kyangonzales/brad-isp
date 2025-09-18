@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 interface Customer {
     id?: number;
     fullname: string;
+    duedate?: string;
     phone?: string;
     purok?: string;
     sitio?: string;
@@ -177,6 +178,20 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                 </div>
 
                 <div className="mt-4 flex gap-4">
+                    {isEditing && (
+                        <div className="grid w-full max-w-sm items-center gap-1.5">
+                            <Label htmlFor="duedate">Duedate</Label>
+                            <Input
+                                type="date"
+                                id="duedate"
+                                name="duedate"
+                                placeholder="Duedate"
+                                value={formData.duedate || ''}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    )}
+
                     <div className="grid w-full max-w-sm items-center gap-1.5">
                         <Label htmlFor="purok">Purok</Label>
                         <Input type="text" id="purok" name="purok" placeholder="Purok" value={formData.purok || ''} onChange={handleChange} />

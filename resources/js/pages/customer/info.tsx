@@ -11,6 +11,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +33,7 @@ interface Plan {
 interface Customer {
     id: number;
     fullname: string;
+    duedate?: string;
     phone?: string;
     purok?: string;
     sitio?: string;
@@ -57,7 +60,9 @@ export default function Info({ customer }: { customer: Customer }) {
         { id: 2, date: '2025-04-15', description: 'Changed to 10mbps plan', credit: 'N/A' },
         { id: 3, date: '2025-04-01', description: 'Paid ₱1200', credit: '₱100' },
     ];
-
+    const handlePayment = () => {
+        toast.info('Payment processing submitted');
+    };
     const handleAddNotes = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -98,7 +103,7 @@ export default function Info({ customer }: { customer: Customer }) {
                 setConfirmOpen(false);
             });
     };
-
+    console.log(customer.duedate);
     return (
         <AppLayout breadcrumbs={[{ title: 'Customer Info', href: '/customer' }]}>
             <div className="flex min-h-screen justify-center bg-gray-50 px-4 py-5">
@@ -133,7 +138,15 @@ export default function Info({ customer }: { customer: Customer }) {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-gray-600">Due Date</p>
-                                            <p className="text-lg font-bold">{customer.plan.dueDate ?? 'N/A'}</p>
+                                            <p className="text-lg font-bold">
+                                                {customer.duedate
+                                                    ? new Intl.DateTimeFormat('en-US', {
+                                                          month: 'long',
+                                                          day: 'numeric',
+                                                          year: 'numeric',
+                                                      }).format(new Date(customer.duedate))
+                                                    : 'N/A'}
+                                            </p>
                                         </div>
                                     </div>
                                 ) : (
@@ -144,18 +157,53 @@ export default function Info({ customer }: { customer: Customer }) {
 
                         {/* ACTION BUTTONS */}
                         <div className="mb-0 flex justify-end gap-3 py-3">
-                            <Button
-                                variant="outline"
-                                className={`rounded-lg px-6 py-3 text-base shadow-sm ${
-                                    customerData.state === 'archived'
-                                        ? 'border-gray-500 text-gray-500 hover:bg-gray-100 hover:text-gray-600'
-                                        : 'border-blue-600 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700'
-                                }`}
-                                onClick={() => toast.info('Payment feature not implemented yet')}
-                            >
-                                <CreditCard size={18} className="mr-2" />
-                                Pay Bill
-                            </Button>
+                            {/* Pay Bill Section */}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={`rounded-lg px-6 py-3 text-base shadow-sm ${
+                                            customerData.state === 'archived'
+                                                ? 'border-gray-500 text-gray-500 hover:bg-gray-100 hover:text-gray-600'
+                                                : 'border-blue-600 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700'
+                                        }`}
+                                    >
+                                        <CreditCard size={18} className="mr-2" />
+                                        Pay Bill
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Pay bill</DialogTitle>
+                                        <DialogDescription> Enter the payment amount below to process the customer’s bill.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex items-center gap-2">
+                                        <div className="grid flex-1 gap-2">
+                                            <Label htmlFor="link" className="sr-only">
+                                                Payment
+                                            </Label>
+                                            <Input id="payment" />
+                                        </div>
+                                    </div>
+                                    <DialogFooter className="sm:justify-end">
+                                        <DialogClose asChild>
+                                            <Button type="button" variant="secondary">
+                                                Close
+                                            </Button>
+                                        </DialogClose>
+
+                                        <Button
+                                            type="button"
+                                            className="rounded-md bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
+                                            onClick={handlePayment}
+                                        >
+                                            Pay bill
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* Generate Receipt Section */}
                             <Button
                                 variant="outline"
                                 className={`rounded-lg px-6 py-3 text-base shadow-sm ${
@@ -168,6 +216,8 @@ export default function Info({ customer }: { customer: Customer }) {
                                 <FileText size={18} className="mr-2" />
                                 Generate Receipt
                             </Button>
+
+                            {/* Notes Section */}
                             <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button

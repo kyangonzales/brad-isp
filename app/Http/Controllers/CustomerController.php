@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Customer;
 use Inertia\Inertia;
+
 class CustomerController extends Controller
 {
     /**

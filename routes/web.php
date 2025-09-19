@@ -4,6 +4,7 @@ use App\Http\Controllers\PlanController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\HistoryController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -25,8 +26,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // })->name('/customers/info');
 
     Route::get('/customers/{id}/info', [CustomerController::class, 'show'])->name('customers.info');
-
-
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -46,7 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/showPlans', [PlanController::class, 'index']);
     Route::delete('/plans/{id}', [PlanController::class, 'destroy']);
     Route::put('/plans/{id}', [PlanController::class, 'update']);
-
+    Route::post('/saveHistory', [HistoryController::class, 'store']);
 });
 
 Route::get('/plans/{planId}/subscribers', [PlanController::class, 'getSubscribers']);

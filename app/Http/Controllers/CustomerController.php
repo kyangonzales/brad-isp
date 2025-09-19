@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Customer;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class CustomerController extends Controller
 {
@@ -34,7 +35,8 @@ class CustomerController extends Controller
             'duedate' => 'nullable|date',
         ]);
 
-        $validated['state'] = 'active'; // default state
+        $validated['state'] = 'active';
+        $validated['duedate'] = Carbon::now()->addMonth()->toDateString();
 
         $customer = Customer::create($validated);
 

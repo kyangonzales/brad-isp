@@ -49,6 +49,7 @@ export default function Info({ customer }: { customer: Customer }) {
     const [customerData, setCustomerData] = useState<Customer>(customer);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState(customer?.plan?.price || 0);
 
     if (!customer) return <div className="py-10 text-center text-gray-500">Loading customer data...</div>;
 
@@ -60,14 +61,28 @@ export default function Info({ customer }: { customer: Customer }) {
         { id: 2, date: '2025-04-15', description: 'Changed to 10mbps plan', credit: 'N/A' },
         { id: 3, date: '2025-04-01', description: 'Paid ₱1200', credit: '₱100' },
     ];
-    const handlePayment = () => {
-        toast.info('Payment processing submitted');
+
+    const handlePayment = async () => {
+        try {
+            const response = await axios.post(`/saveHistory`, {
+                customer_id: customer.id,
+                plan_id: customer?.plan?.id,
+                price: paymentAmount, // <-- dynamic na galing sa input
+                payment_date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
+            });
+
+            console.log('Payment successful:', response.data);
+            alert('Payment successful!');
+        } catch (error) {
+            console.error('Payment failed:', error);
+            alert('Payment failed!');
+        }
     };
+
     const handleAddNotes = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            // Make sure the endpoint is correct
             const response = await axios.put(`/updateNotes/${customerData.id}`, {
                 notes: notes.trim(),
             });
@@ -182,7 +197,12 @@ export default function Info({ customer }: { customer: Customer }) {
                                             <Label htmlFor="link" className="sr-only">
                                                 Payment
                                             </Label>
-                                            <Input id="payment" />
+                                            <Input
+                                                id="payment"
+                                                type="number"
+                                                value={paymentAmount}
+                                                onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                                            />
                                         </div>
                                     </div>
                                     <DialogFooter className="sm:justify-end">

@@ -37,20 +37,20 @@ class HistoryController extends Controller
         $monthsPaid = floor($paymentAmount / $planPrice);
         $remainder  = fmod($paymentAmount, $planPrice);
 
-        // Base date: kung may existing due date at mas advance kaysa payment date, doon mag-start
-        $startDate = Carbon::parse($validated['payment_date']);
-        if ($customer->duedate && Carbon::parse($customer->duedate)->gt($startDate)) {
-            $startDate = Carbon::parse($customer->duedate);
-        }
+        $today = Carbon::parse($validated['payment_date']);
+        $currentDue = $customer->duedate ? Carbon::parse($customer->duedate) : $today;
+
+        // Kung overdue, start sa today; kung advance pa rin, start sa due date
+        $startDate = $currentDue->lt($today) ? $today : $currentDue;
 
         // Add months based on payment
         $newDueDate = $startDate->copy()->addMonths($monthsPaid);
 
-        // Update customer (sync duedate)
+        // Update customer
         $customer->duedate = $newDueDate;
         $customer->save();
 
-        // Save history (credited_until same as duedate)
+        // Save history
         $history = History::create([
             'customer_id'    => $customer->id,
             'plan_id'        => $plan->id,

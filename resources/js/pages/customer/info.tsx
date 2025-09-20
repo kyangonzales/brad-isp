@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
+import { calculatePayment } from '@/lib/utils';
 import axios from 'axios';
 import { Archive, CreditCard, Edit2, FileText, Undo2 } from 'lucide-react';
 import { useState } from 'react';
@@ -39,6 +40,7 @@ interface Customer {
     sitio?: string;
     barangay: string;
     plan?: Plan;
+    credit?: string;
     notes?: string;
     state?: 'active' | 'inactive' | 'archived'; // assumed possible states
 }
@@ -49,13 +51,19 @@ export default function Info({ customer }: { customer: Customer }) {
     const [customerData, setCustomerData] = useState<Customer>(customer);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [paymentAmount, setPaymentAmount] = useState(customer?.plan?.price || 0);
-
+    // const [paymentAmount, setPaymentAmount] = useState(customer?.plan?.price || 0);
+    const [open, setOpen] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState(() =>
+        calculatePayment(
+            Number(customer?.plan?.price) || 0,
+            customer?.duedate || new Date().toISOString().split('T')[0],
+            Number(customer?.credit) || 0,
+        ),
+    );
     if (!customer) return <div className="py-10 text-center text-gray-500">Loading customer data...</div>;
 
     const address = [customer.purok, customer.sitio, customer.barangay].filter(Boolean).join(', ');
 
-    // Sample history data (you can replace with real API data)
     const historySample = [
         { id: 1, date: '2025-05-01', description: 'Paid ₱1500', credit: '₱0' },
         { id: 2, date: '2025-04-15', description: 'Changed to 10mbps plan', credit: 'N/A' },
@@ -67,12 +75,19 @@ export default function Info({ customer }: { customer: Customer }) {
             const response = await axios.post(`/saveHistory`, {
                 customer_id: customer.id,
                 plan_id: customer?.plan?.id,
-                price: paymentAmount, // <-- dynamic na galing sa input
-                payment_date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
+                price: paymentAmount,
+                payment_date: new Date().toISOString().split('T')[0],
             });
 
-            console.log('Payment successful:', response.data);
-            alert('Payment successful!');
+            const newDueDate = response.data.customer?.duedate;
+            if (newDueDate) {
+                setCustomerData((prev) => ({
+                    ...prev,
+                    duedate: newDueDate,
+                }));
+            }
+            toast.success('Payment successful!');
+            setOpen(false);
         } catch (error) {
             console.error('Payment failed:', error);
             alert('Payment failed!');
@@ -118,6 +133,7 @@ export default function Info({ customer }: { customer: Customer }) {
                 setConfirmOpen(false);
             });
     };
+
     console.log(customer.duedate);
     return (
         <AppLayout breadcrumbs={[{ title: 'Customer Info', href: '/customer' }]}>
@@ -154,12 +170,12 @@ export default function Info({ customer }: { customer: Customer }) {
                                         <div>
                                             <p className="text-sm font-medium text-gray-600">Due Date</p>
                                             <p className="text-lg font-bold">
-                                                {customer.duedate
+                                                {customerData.duedate
                                                     ? new Intl.DateTimeFormat('en-US', {
                                                           month: 'long',
                                                           day: 'numeric',
                                                           year: 'numeric',
-                                                      }).format(new Date(customer.duedate))
+                                                      }).format(new Date(customerData.duedate))
                                                     : 'N/A'}
                                             </p>
                                         </div>
@@ -173,7 +189,7 @@ export default function Info({ customer }: { customer: Customer }) {
                         {/* ACTION BUTTONS */}
                         <div className="mb-0 flex justify-end gap-3 py-3">
                             {/* Pay Bill Section */}
-                            <Dialog>
+                            <Dialog open={open} onOpenChange={setOpen}>
                                 <DialogTrigger asChild>
                                     <Button
                                         variant="outline"
@@ -198,8 +214,9 @@ export default function Info({ customer }: { customer: Customer }) {
                                                 Payment
                                             </Label>
                                             <Input
-                                                id="payment"
+                                                id="paymentAmount"
                                                 type="number"
+                                                name="paymentAmount"
                                                 value={paymentAmount}
                                                 onChange={(e) => setPaymentAmount(Number(e.target.value))}
                                             />

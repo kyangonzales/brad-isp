@@ -10,10 +10,13 @@ use App\Models\Plan;
 
 class HistoryController extends Controller
 {
-    public function index()
+    public function index($id)
     {
-        //
+        $customer = Customer::with('histories.plan')->findOrFail($id);
+        return response()->json($customer);
     }
+
+
 
     /**
      * Store a newly created resource in storage.
@@ -33,15 +36,15 @@ class HistoryController extends Controller
         $planPrice = (float) $plan->price;
         $paymentAmount = (float) $validated['price'];
 
-        // Compute ilang buwan ang covered
+        // ilang buwan covered
         $monthsPaid = floor($paymentAmount / $planPrice);
         $remainder  = fmod($paymentAmount, $planPrice);
 
         $today = Carbon::parse($validated['payment_date']);
         $currentDue = $customer->duedate ? Carbon::parse($customer->duedate) : $today;
 
-        // Kung overdue, start sa today; kung advance pa rin, start sa due date
-        $startDate = $currentDue->lt($today) ? $today : $currentDue;
+        // ⚡ Singilin muna atraso → base palagi sa currentDue
+        $startDate = $currentDue;
 
         // Add months based on payment
         $newDueDate = $startDate->copy()->addMonths($monthsPaid);
@@ -67,7 +70,6 @@ class HistoryController extends Controller
             'credit'      => $remainder,
         ], 201);
     }
-
 
     /**
      * Display the specified resource.

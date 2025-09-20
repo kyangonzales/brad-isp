@@ -28,5 +28,8 @@ class Customer extends Model
     {
         return $this->belongsTo(Plan::class, 'plan_id');
     }
-
+    public function histories()
+    {
+        return $this->hasMany(History::class, 'customer_id');
+    }
 }

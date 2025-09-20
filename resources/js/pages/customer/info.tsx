@@ -21,7 +21,7 @@ import AppLayout from '@/layouts/app-layout';
 import { calculatePayment } from '@/lib/utils';
 import axios from 'axios';
 import { Archive, CreditCard, Edit2, FileText, Undo2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 interface Plan {
@@ -42,16 +42,23 @@ interface Customer {
     plan?: Plan;
     credit?: string;
     notes?: string;
-    state?: 'active' | 'inactive' | 'archived'; // assumed possible states
+    state?: 'active' | 'inactive' | 'archived';
 }
-
+interface History {
+    id: number;
+    customer_id: number;
+    plan_id: number;
+    price: number;
+    payment_date: string;
+    credited_until: string;
+    plan?: Plan;
+}
 export default function Info({ customer }: { customer: Customer }) {
     const [notes, setNotes] = useState<string>(customer.notes || '');
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [customerData, setCustomerData] = useState<Customer>(customer);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    // const [paymentAmount, setPaymentAmount] = useState(customer?.plan?.price || 0);
     const [open, setOpen] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState(() =>
         calculatePayment(
@@ -69,6 +76,26 @@ export default function Info({ customer }: { customer: Customer }) {
         { id: 2, date: '2025-04-15', description: 'Changed to 10mbps plan', credit: 'N/A' },
         { id: 3, date: '2025-04-01', description: 'Paid ₱1200', credit: '₱100' },
     ];
+
+    const [customerHistory, setCustomerHistory] = useState();
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        axios
+            .get(`/customers/${customer.id}/history`)
+            .then((res) => {
+                setCustomerHistory(res.data);
+            })
+            .catch((err) => {
+                console.error('Error fetching history:', err);
+            });
+    }, [customer.id]);
+
+    console.log("Customer's History:", customerHistory);
+
+    console.log("Customer's id:", customer.id);
+    // if (loading) return <p>Loading...</p>;
+    // if (!customer) return <p>No customer history found.</p>;
 
     const handlePayment = async () => {
         try {

@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/plans/{id}', [PlanController::class, 'destroy']);
     Route::put('/plans/{id}', [PlanController::class, 'update']);
     Route::post('/saveHistory', [HistoryController::class, 'store']);
+    Route::get('/customers/{id}/history', [HistoryController::class, 'index']);
 });
 
 Route::get('/plans/{planId}/subscribers', [PlanController::class, 'getSubscribers']);

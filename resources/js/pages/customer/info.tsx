@@ -48,15 +48,29 @@ interface History {
     id: number;
     customer_id: number;
     plan_id: number;
-    price: number;
+    price: string;
     payment_date: string;
-    credited_until: string;
-    plan?: Plan;
 }
+
+interface CustomerHistory {
+    id: number;
+    fullname: string;
+    phone: string;
+    purok: string;
+    sitio: string;
+    barangay: string;
+    plan_id: number;
+    state: string;
+    duedate: string;
+    histories: History[];
+}
+
 export default function Info({ customer }: { customer: Customer }) {
     const [notes, setNotes] = useState<string>(customer.notes || '');
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [customerData, setCustomerData] = useState<Customer>(customer);
+    const [customerHistory, setCustomerHistory] = useState<CustomerHistory | null>(null);
+
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [open, setOpen] = useState(false);
@@ -71,13 +85,6 @@ export default function Info({ customer }: { customer: Customer }) {
 
     const address = [customer.purok, customer.sitio, customer.barangay].filter(Boolean).join(', ');
 
-    const historySample = [
-        { id: 1, date: '2025-05-01', description: 'Paid ₱1500', credit: '₱0' },
-        { id: 2, date: '2025-04-15', description: 'Changed to 10mbps plan', credit: 'N/A' },
-        { id: 3, date: '2025-04-01', description: 'Paid ₱1200', credit: '₱100' },
-    ];
-
-    const [customerHistory, setCustomerHistory] = useState();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -404,12 +411,11 @@ export default function Info({ customer }: { customer: Customer }) {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {historySample.length > 0 ? (
-                                                    historySample.map((item) => (
-                                                        <TableRow key={item.id}>
-                                                            <TableCell className="font-medium">{item.date}</TableCell>
-                                                            <TableCell>{item.description}</TableCell>
-                                                            <TableCell>{item.credit}</TableCell>
+                                                {customerHistory?.histories && customerHistory.histories.length > 0 ? (
+                                                    customerHistory.histories.map((history: History) => (
+                                                        <TableRow key={history.id}>
+                                                            <TableCell className="font-medium">{history.payment_date}</TableCell>
+                                                            <TableCell>{history.price}</TableCell>
                                                         </TableRow>
                                                     ))
                                                 ) : (

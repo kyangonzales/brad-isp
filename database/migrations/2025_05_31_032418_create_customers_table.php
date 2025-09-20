@@ -15,7 +15,6 @@ return new class extends Migration {
             $table->string('fullname');
             $table->string('phone')->nullable();
 
-            // Split address components
             $table->string('purok')->nullable();
             $table->string('sitio')->nullable();
             $table->string('barangay');
@@ -25,8 +24,8 @@ return new class extends Migration {
 
             $table->foreignId('plan_id')->constrained('plans');
 
-            $table->date('duedate')->nullable(); // current due date
-            $table->string('state')->default('active'); // active by default
+            $table->date('duedate')->nullable();
+            $table->string('state')->default('active');
 
             $table->timestamps();
         });

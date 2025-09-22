@@ -20,10 +20,12 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { calculatePayment } from '@/lib/utils';
 import axios from 'axios';
+import { format } from 'date-fns';
 import { Archive, CreditCard, Edit2, FileText, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 interface Plan {
     id: number;
     planName: string;
@@ -405,16 +407,22 @@ export default function Info({ customer }: { customer: Customer }) {
                                         <Table>
                                             <TableHeader>
                                                 <TableRow className="bg-gray-50 text-gray-600">
-                                                    <TableHead className="w-[150px]">Date</TableHead>
-                                                    <TableHead>Description</TableHead>
-                                                    <TableHead>Credit</TableHead>
+                                                    <TableHead>No.</TableHead>
+                                                    <TableHead>Date</TableHead>
+                                                    <TableHead>Payment</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {customerHistory?.histories && customerHistory.histories.length > 0 ? (
-                                                    customerHistory.histories.map((history: History) => (
+                                                    customerHistory.histories.map((history: History, index: number) => (
                                                         <TableRow key={history.id}>
-                                                            <TableCell className="font-medium">{history.payment_date}</TableCell>
+                                                            <TableCell>{index + 1}</TableCell>
+                                                            <TableCell>
+                                                                {' '}
+                                                                {history.payment_date
+                                                                    ? format(new Date(history.payment_date), 'MMMM d, yyyy')
+                                                                    : 'N/A'}
+                                                            </TableCell>
                                                             <TableCell>{history.price}</TableCell>
                                                         </TableRow>
                                                     ))

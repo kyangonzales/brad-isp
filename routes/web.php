@@ -35,6 +35,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('sales', function () {
+        return Inertia::render('sales/Index');
+    })->name('sales');
+});
+
 Route::middleware('auth')->group(function () {
     Route::post('/insertCustomer', [CustomerController::class, 'store']);
     Route::get('/customers', [CustomerController::class, 'index']);

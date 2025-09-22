@@ -21,6 +21,7 @@ class Customer extends Model
         'notes',
         'plan_id',
         'duedate',
+        'credit',
         'state',
     ];
 

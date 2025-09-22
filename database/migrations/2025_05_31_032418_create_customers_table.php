@@ -25,6 +25,7 @@ return new class extends Migration {
             $table->foreignId('plan_id')->constrained('plans');
 
             $table->date('duedate')->nullable();
+           $table->decimal('credit', 10, 2)->nullable(); 
             $table->string('state')->default('active');
 
             $table->timestamps();

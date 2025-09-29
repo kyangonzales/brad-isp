@@ -34,3 +34,14 @@ export function calculatePayment(
   }
   return total;
 }
+export function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: 'long', // September
+    day: 'numeric', // 24
+    year: 'numeric', // 2025
+    hour: '2-digit', // 02
+    minute: '2-digit', // 30
+  });
+}
+

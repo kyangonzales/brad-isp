@@ -2,9 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import axios, { AxiosError } from 'axios';
 import React, { useEffect, useState } from 'react';
-
 interface Customer {
     id?: number;
     fullname: string;
@@ -13,6 +13,7 @@ interface Customer {
     purok?: string;
     sitio?: string;
     barangay: string;
+    notes?: string;
     plan_id: string;
     branch: string;
 }
@@ -35,6 +36,8 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
             sitio: '',
             barangay: '',
             plan_id: '',
+            notes: '',
+            duedate: '',
             branch: '',
         },
     );
@@ -57,7 +60,7 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
     useEffect(() => {
         fetchPlans();
     }, []);
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -216,7 +219,16 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                     </div>
                 </div>
 
-                <div className="mt-4 flex gap-4"></div>
+                <div className="mt-4 flex gap-4">
+                    <Textarea
+                        name="notes"
+                        value={formData.notes}
+                        onChange={handleChange}
+                        rows={4}
+                        className="w-full"
+                        placeholder="Type notes here..."
+                    />
+                </div>
                 <div className="mx-4 flex gap-4 pt-10">
                     <Button
                         type="submit"

@@ -4,72 +4,164 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { highlightText } from '@/lib/highlightText';
+import { formatDateTime } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
+import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { FileSpreadsheet, FileText } from 'lucide-react'; // ✅ icons
-import { useState } from 'react';
+import { FileSpreadsheet, FileText } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
-
 interface Sale {
     id: number;
     date: string;
-    customer: string;
+    fullname: string;
     price: number;
 }
 
 export default function Index() {
     const breadcrumbs = [{ title: 'Sales List', href: '/sales' }];
 
-    // Dummy data (replace with API call later)
-    const [sales] = useState<Sale[]>([
-        { id: 1, date: '2025-09-01', customer: 'John Doe', price: 999 },
-        { id: 2, date: '2025-09-05', customer: 'Jane Smith', price: 1500 },
-        { id: 3, date: '2025-09-10', customer: 'Michael Johnson', price: 750 },
-    ]);
-
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
     // Filter sales by date range
     const filteredSales = sales.filter((sale) => {
-        if (!startDate || !endDate) return true;
-        return sale.date >= startDate && sale.date <= endDate;
+        const matchesDate = (!startDate || sale.date >= startDate) && (!endDate || sale.date <= endDate);
+
+        const matchesSearch =
+            sale.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            formatDateTime(sale.date).toLowerCase().includes(searchTerm.toLowerCase());
+
+        return matchesDate && matchesSearch;
     });
+
+    useEffect(() => {
+        const fetchSales = async () => {
+            setLoading(true);
+            try {
+                const response = await axios.get('/salesResult', {
+                    params: {
+                        from: startDate || undefined,
+                        to: endDate || undefined,
+                    },
+                });
+
+                // 👇 depende kung paano ka nag-return sa controller
+                const records = response.data.records || response.data;
+
+                setSales(
+                    records.map((item: any) => ({
+                        id: item.id,
+                        date: item.created_at,
+                        fullname: item.customer?.fullname || 'N/A', // ✅ ito ang tamang key
+                        price: parseFloat(item.price),
+                    })),
+                );
+            } catch (error) {
+                console.error('Error fetching sales:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSales();
+    }, [startDate, endDate]);
 
     // Compute total sales
     const totalSales = filteredSales.reduce((sum, sale) => sum + sale.price, 0);
 
-    // ✅ Export to PDF
     const handleExportPDF = () => {
         const doc = new jsPDF();
-        doc.text('Sales Report', 14, 15);
 
-        autoTable(doc, {
+        // 🏢 Company Name & Title
+        doc.setFontSize(18);
+        doc.text('ULYCES ISP', 14, 15);
+        doc.setFontSize(14);
+        doc.text('Sales Report', 14, 25);
+
+        // 🗓️ Date Range Info
+        doc.setFontSize(11);
+        const rangeText = startDate && endDate ? `Period: ${startDate} to ${endDate}` : 'Period: All Records';
+        doc.text(rangeText, 14, 33);
+
+        // 📊 Table
+        const result = autoTable(doc, {
+            startY: 40,
             head: [['Date', 'Customer', 'Price']],
-            body: filteredSales.map((s) => [s.date, s.customer, `₱${s.price.toLocaleString()}`]),
+            body: filteredSales.map((s) => [s.date, s.fullname, `₱${s.price.toLocaleString()}`]),
             foot: [['', 'Total', `₱${totalSales.toLocaleString()}`]],
+            styles: {
+                fontSize: 10,
+                halign: 'center',
+            },
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                halign: 'center',
+            },
+            footStyles: {
+                fillColor: [230, 230, 230],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+            },
         });
 
-        doc.save(`sales_${startDate || 'all'}_${endDate || 'all'}.pdf`);
+        // ✅ Final Y fix (universal)
+        const finalY = (result as any)?.cursor?.y || (result as any)?.finalY || 40;
+
+        // 📌 Footer
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text('Generated by ULYCES ISP Sales System', 14, finalY - 2);
+
+        doc.save(`ULYCES_Sales_Report_${startDate || 'all'}_${endDate || 'all'}.pdf`);
     };
 
-    // ✅ Export to Excel
+    // ✅ Export to Excel (Professional Sheet)
     const handleExportExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(
-            filteredSales.map((s) => ({
-                Date: s.date,
-                Customer: s.customer,
-                Price: s.price,
-            })),
-        );
+        // Prepare data
+        const data = filteredSales.map((s) => ({
+            Date: s.date,
+            Customer: s.fullname,
+            Price: s.price,
+        }));
 
         // Add total row
-        XLSX.utils.sheet_add_aoa(ws, [['', 'Total', totalSales]], { origin: -1 });
+        data.push({ Date: '', Customer: 'Total', Price: totalSales });
 
+        // ✅ Create worksheet (no origin here!)
+        const ws = XLSX.utils.json_to_sheet(data);
+
+        // 🏢 Add company header at the top
+        XLSX.utils.sheet_add_aoa(
+            ws,
+            [
+                ['ULYCES ISP'],
+                ['Sales Report'],
+                [startDate && endDate ? `Period: ${startDate} to ${endDate}` : 'Period: All Records'],
+                [], // blank row before data
+            ],
+            { origin: 'A1' },
+        );
+
+        // 📊 Auto width for columns
+        const colWidths = [
+            { wch: 15 }, // Date
+            { wch: 30 }, // Customer
+            { wch: 15 }, // Price
+        ];
+        ws['!cols'] = colWidths;
+
+        // 📘 Workbook setup
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sales');
-        XLSX.writeFile(wb, `sales_${startDate || 'all'}_${endDate || 'all'}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, 'Sales Report');
+
+        XLSX.writeFile(wb, `ULYCES_Sales_Report_${startDate || 'all'}_${endDate || 'all'}.xlsx`);
     };
 
     return (
@@ -77,11 +169,22 @@ export default function Index() {
             <Head title="Sales List" />
 
             {/* 🔹 Filter + Total + Export */}
-            <Card className="mb-6">
+            <Card className="mx-6 mt-4 mb-6">
                 <CardHeader>
                     <CardTitle>Filter Sales</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="search">Search</Label>
+                        <Input
+                            id="search"
+                            type="text"
+                            placeholder="🔍 Search customer or date..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
                     <div className="flex gap-4">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="startDate">Start Date</Label>
@@ -97,13 +200,13 @@ export default function Index() {
                     <div className="flex items-center gap-4">
                         {/* Total Sales Display */}
                         <div className="text-right">
-                            <p className="text-sm text-gray-500">Total Sales</p>
-                            <p className="text-2xl font-bold text-blue-600">₱{totalSales.toLocaleString()}</p>
+                            <p className="text-xl text-gray-500">Total Sales</p>
+                            <p className="text-5xl font-bold text-blue-600">₱{totalSales.toLocaleString()}</p>
                         </div>
 
                         {/* Export Buttons */}
                         <div className="flex gap-2">
-                            <Button onClick={handleExportPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700">
+                            <Button onClick={handleExportPDF} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
                                 <FileText size={18} />
                                 PDF
                             </Button>
@@ -118,7 +221,7 @@ export default function Index() {
             </Card>
 
             {/* 🔹 Sales Table */}
-            <Card>
+            <Card className="mx-6 mb-6">
                 <CardHeader>
                     <CardTitle>Sales Records</CardTitle>
                 </CardHeader>
@@ -132,12 +235,18 @@ export default function Index() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredSales.length > 0 ? (
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="text-center">
+                                        Loading sales...
+                                    </TableCell>
+                                </TableRow>
+                            ) : filteredSales.length > 0 ? (
                                 filteredSales.map((sale) => (
                                     <TableRow key={sale.id}>
-                                        <TableCell>{sale.date}</TableCell>
-                                        <TableCell>{sale.customer}</TableCell>
-                                        <TableCell className="text-right">₱{sale.price.toLocaleString()}</TableCell>
+                                        <TableCell>{highlightText(formatDateTime(sale.date), searchTerm)}</TableCell>
+                                        <TableCell>{highlightText(sale.fullname, searchTerm)}</TableCell>
+                                        <TableCell className="text-right">₱{highlightText(sale.price.toLocaleString(), searchTerm)}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
@@ -147,11 +256,6 @@ export default function Index() {
                                     </TableCell>
                                 </TableRow>
                             )}
-                            <TableRow className="font-bold">
-                                <TableCell>Total</TableCell>
-                                <TableCell></TableCell>
-                                <TableCell className="text-right">₱{totalSales.toLocaleString()}</TableCell>
-                            </TableRow>
                         </TableBody>
                     </Table>
                 </CardContent>

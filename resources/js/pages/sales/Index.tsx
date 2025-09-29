@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { highlightText } from '@/lib/highlightText';
@@ -10,19 +11,20 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { FileSpreadsheet, FileText } from 'lucide-react';
+import { FileSpreadsheet, FileText, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 interface Sale {
     id: number;
     date: string;
     fullname: string;
+    branch: string;
     price: number;
 }
 
 export default function Index() {
     const breadcrumbs = [{ title: 'Sales List', href: '/sales' }];
-
+    const [branch, setBranch] = useState<string>('All');
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +39,9 @@ export default function Index() {
             sale.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
             formatDateTime(sale.date).toLowerCase().includes(searchTerm.toLowerCase());
 
-        return matchesDate && matchesSearch;
+        const matchesBranch = branch === 'All' || sale.branch === branch; // ✅ branch condition
+
+        return matchesDate && matchesSearch && matchesBranch;
     });
 
     useEffect(() => {
@@ -59,6 +63,7 @@ export default function Index() {
                         id: item.id,
                         date: item.created_at,
                         fullname: item.customer?.fullname || 'N/A', // ✅ ito ang tamang key
+                        branch: item.customer?.branch || 'N/A',
                         price: parseFloat(item.price),
                     })),
                 );
@@ -174,43 +179,61 @@ export default function Index() {
                     <CardTitle>Filter Sales</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="search">Search</Label>
-                        <Input
-                            id="search"
-                            type="text"
-                            placeholder="🔍 Search customer or date..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
+                        {/* Search */}
+                        <div className="relative flex flex-col gap-1 sm:w-full">
+                            <Label htmlFor="search">Search</Label>
+                            <div className="relative w-full">
+                                <Search className="text-muted-foreground absolute top-2.5 left-3 h-5 w-5" />
+                                <Input
+                                    id="search"
+                                    type="text"
+                                    placeholder="Search customer or date..."
+                                    className="pl-10"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        {/* Branch */}
+                        <div className="flex flex-col gap-1 sm:w-1/2">
+                            <Label htmlFor="branch">Branch</Label>
+                            <Select value={branch} onValueChange={setBranch}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="All Branches" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Branches</SelectItem>
+                                    <SelectItem value="General Tinio">General Tinio</SelectItem>
+                                    <SelectItem value="Peñaranda">Peñaranda</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {/* Date Range */}
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2">
+                            <div className="flex flex-col gap-1">
+                                <Label htmlFor="startDate">Start Date</Label>
+                                <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <Label htmlFor="endDate">End Date</Label>
+                                <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex gap-4">
-                        <div className="flex flex-col gap-2">
-                            <Label htmlFor="startDate">Start Date</Label>
-                            <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <Label htmlFor="endDate">End Date</Label>
-                            <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                        </div>
-                    </div>
-
+                    {/* 💰 Total + Export */}
                     <div className="flex items-center gap-4">
-                        {/* Total Sales Display */}
                         <div className="text-right">
                             <p className="text-xl text-gray-500">Total Sales</p>
                             <p className="text-5xl font-bold text-blue-600">₱{totalSales.toLocaleString()}</p>
                         </div>
 
-                        {/* Export Buttons */}
                         <div className="flex gap-2">
                             <Button onClick={handleExportPDF} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
                                 <FileText size={18} />
                                 PDF
                             </Button>
-
                             <Button onClick={handleExportExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
                                 <FileSpreadsheet size={18} />
                                 Excel
@@ -229,6 +252,7 @@ export default function Index() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>No.</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Customer</TableHead>
                                 <TableHead className="text-right">Price</TableHead>
@@ -242,8 +266,9 @@ export default function Index() {
                                     </TableCell>
                                 </TableRow>
                             ) : filteredSales.length > 0 ? (
-                                filteredSales.map((sale) => (
+                                filteredSales.map((sale, index) => (
                                     <TableRow key={sale.id}>
+                                        <TableCell>{index + 1 + '.'}</TableCell>
                                         <TableCell>{highlightText(formatDateTime(sale.date), searchTerm)}</TableCell>
                                         <TableCell>{highlightText(sale.fullname, searchTerm)}</TableCell>
                                         <TableCell className="text-right">₱{highlightText(sale.price.toLocaleString(), searchTerm)}</TableCell>

@@ -83,25 +83,28 @@ class HistoryController extends Controller
         $from = $request->input('from');
         $to   = $request->input('to');
 
-        $query = History::with(['customer', 'plan']);
+        $query = History::with(['customer' => function ($q) {
+            $q->select('id', 'fullname', 'branch');
+        }, 'plan']);
 
-        if ($from && $to) {
-            $query->whereBetween('payment_date', [
-                Carbon::parse($from)->startOfDay(),
-                Carbon::parse($to)->endOfDay(),
-            ]);
-        } else {
-            $query->whereMonth('payment_date', Carbon::now()->month)
-                ->whereYear('payment_date', Carbon::now()->year);
+        if ($from) {
+            $query->where('payment_date', '>=', Carbon::parse($from)->startOfDay());
+        }
+        if ($to) {
+            $query->where('payment_date', '<=', Carbon::parse($to)->endOfDay());
         }
 
         if ($request->has('customer_id')) {
             $query->where('customer_id', $request->input('customer_id'));
         }
 
-        // 👇 pinakabagong record based sa id
-        $sales = $query->orderBy('id', 'desc')->get();
+        if ($request->has('branch') && $request->branch !== 'All') {
+            $query->whereHas('customer', function ($q) use ($request) {
+                $q->where('branch', $request->branch);
+            });
+        }
 
+        $sales = $query->orderBy('id', 'desc')->get();
         $totalSales = $sales->sum('price');
 
         return response()->json([

@@ -147,7 +147,7 @@ export default function Index() {
 
                             {/* Search Input */}
                             <div className="relative w-full md:w-1/3">
-                                <Search className="text-muted-foreground absolute top-3 left-3 h-5 w-5" />
+                                <Search className="text-muted-foreground absolute top-2 left-3 h-5 w-5" />
                                 <Input
                                     placeholder="Search by name, address, or plan..."
                                     className="pl-11"

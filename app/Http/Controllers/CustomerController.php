@@ -14,7 +14,11 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $customers = Customer::with('plan')->latest()->get(); // Eager load plan
+        $customers = Customer::with('plan')
+            ->orderBy('duedate', 'asc')
+            ->orderBy('id', 'asc') // tie-breaker
+            ->get();
+
         return response()->json($customers);
     }
 

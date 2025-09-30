@@ -59,3 +59,14 @@ export const formatDate = (date: Date | string | null | undefined): string => {
   });
 };
 
+export function getDueDateClass(duedate: string | null): string {
+    if (!duedate) return "";
+
+    const today = new Date();
+    const due = new Date(duedate);
+    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "bg-red-100";      // overdue
+    if (diffDays <= 3) return "bg-yellow-100";  // malapit na
+    return "";                                   // normal
+}

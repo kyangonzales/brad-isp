@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import { capitalizeFirstLetter, formatDate } from '@/lib/utils';
+import { capitalizeFirstLetter, formatDate, getDueDateClass } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
 import { Edit, Eye, Plus, Search, X } from 'lucide-react';
@@ -217,7 +217,7 @@ export default function Index() {
                                                         : filteredCustomers.branch === selectedBranch) && filteredCustomers.state === 'active',
                                             )
                                             .map((customer, index) => (
-                                                <TableRow key={customer.id}>
+                                                <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
                                                     <TableCell>
                                                         <Checkbox />
                                                     </TableCell>

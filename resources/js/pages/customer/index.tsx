@@ -118,15 +118,15 @@ export default function Index() {
                 <Card className="mb-4">
                     <CardHeader className="border-b pb-4">
                         <CardTitle className="text-3xl font-extrabold tracking-wide" style={{ color: '#1C3694', fontFamily: 'Poppins, sans-serif' }}>
-                            Customer List
+                            Customer List from {selectedBranch === 'All' || !selectedBranch ? 'All Branches' : selectedBranch}
                         </CardTitle>
                         <p className="mt-1 text-sm text-gray-500">Manage and view all registered customers in one place.</p>
                     </CardHeader>
 
                     <CardContent className="border-b pb-6">
-                        <div className="flex flex-col gap-5 px-4 py-5 md:flex-row md:items-end md:justify-between">
+                        <div className="mb-4 flex w-full flex-col sm:flex-row sm:items-end sm:gap-2">
                             {/* Branch Filter */}
-                            <div className="w-full md:w-1/4">
+                            <div className="w-full sm:max-w-xs sm:flex-1 md:w-1/2">
                                 <Label htmlFor="branch" className="text-sm font-semibold text-gray-700">
                                     Branch Location
                                 </Label>
@@ -146,24 +146,23 @@ export default function Index() {
                             </div>
 
                             {/* Search Input */}
-                            <div className="relative w-full md:w-1/3">
+                            <div className="relative w-full sm:ml-2 sm:max-w-md sm:flex-1 md:w-1/2">
                                 <Search className="text-muted-foreground absolute top-2 left-3 h-5 w-5" />
                                 <Input
                                     placeholder="Search by name, address, or plan..."
-                                    className="pl-11"
+                                    className="w-full pl-11"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
 
                             {/* Add Button */}
-                            <div className="flex w-full justify-end md:w-auto">
+                            <div className="mt-0 mt-2 flex sm:mt-0 sm:ml-auto">
                                 <Button
                                     onClick={() => setShowAdd(true)}
                                     className="flex items-center gap-2 bg-[#1C3694] text-white hover:bg-[#162C7D]"
                                 >
-                                    <Plus className="h-5 w-5" />
-                                    Add New Customer
+                                    <Plus className="h-5 w-5" /> Add New Customer
                                 </Button>
                             </div>
                         </div>

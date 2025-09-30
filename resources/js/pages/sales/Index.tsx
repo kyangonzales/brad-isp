@@ -175,8 +175,14 @@ export default function Index() {
 
             {/* 🔹 Filter + Total + Export */}
             <Card className="mx-6 mt-4 mb-6">
-                <CardHeader>
-                    <CardTitle>Filter Sales</CardTitle>
+                <CardHeader className="border-b pb-4">
+                    <CardTitle className="text-3xl font-extrabold tracking-wide" style={{ color: '#1C3694', fontFamily: 'Poppins, sans-serif' }}>
+                        Sales Overview
+                    </CardTitle>
+                    <p className="mt-1 text-sm text-gray-500">
+                        {' '}
+                        View and track your sales performance, revenue trends, and transaction history in one place.
+                    </p>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">

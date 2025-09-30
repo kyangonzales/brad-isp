@@ -11,7 +11,7 @@ import AppLayout from '@/layouts/app-layout';
 import { capitalizeFirstLetter, formatDate, getDueDateClass } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { Edit, Eye, Plus, Search, X } from 'lucide-react';
+import { Edit, Eye, Plus, Printer, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 interface Plan {
     id: number;
@@ -45,6 +45,8 @@ export default function Index() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedBranch, setSelectedBranch] = useState<string>('All');
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+    const [selectAll, setSelectAll] = useState(false);
 
     useEffect(() => {
         axios
@@ -68,6 +70,29 @@ export default function Index() {
     const handleEditCustomer = (customer: Customer) => {
         setSelectedCustomer(customer);
         setShowEdit(true);
+    };
+    const handleCheckboxChange = (id: number, checked: boolean) => {
+        if (!id) return;
+
+        if (checked) {
+            setSelectedCustomerIds((prev) => [...prev, id]);
+        } else {
+            setSelectedCustomerIds((prev) => prev.filter((cid) => cid !== id));
+        }
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        setSelectAll(checked);
+
+        if (checked) {
+            setSelectedCustomerIds(filteredCustomers.map((c) => c.id).filter((id): id is number => id !== undefined));
+        } else {
+            setSelectedCustomerIds([]);
+        }
+    };
+
+    const handlePrint = () => {
+        // window.open('/print-receipt', '_blank');
     };
 
     if (showAdd) {
@@ -164,7 +189,13 @@ export default function Index() {
                             </div>
 
                             {/* Add Button */}
-                            <div className="mt-0 mt-2 flex sm:mt-0 sm:ml-auto">
+                            <div className="mt-0 mt-2 flex gap-2 sm:mt-0 sm:ml-auto">
+                                {selectedCustomerIds.length > 0 && (
+                                    <Button onClick={handlePrint} className="flex items-center gap-2 bg-gray-500 text-white hover:bg-gray-600">
+                                        <Printer className="h-5 w-5" />
+                                        Print Receipt
+                                    </Button>
+                                )}
                                 <Button
                                     onClick={() => setShowAdd(true)}
                                     className="flex items-center gap-2 bg-[#1C3694] text-white hover:bg-[#162C7D]"
@@ -196,7 +227,7 @@ export default function Index() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>
-                                                <Checkbox />
+                                                <Checkbox checked={selectAll} onCheckedChange={(checked) => handleSelectAll(checked as boolean)} />
                                             </TableHead>
                                             <TableHead>No.</TableHead>
                                             <TableHead>Name</TableHead>
@@ -211,49 +242,64 @@ export default function Index() {
                                     <TableBody>
                                         {filteredCustomers
                                             .filter(
-                                                (filteredCustomers) =>
-                                                    (selectedBranch === 'All' || !selectedBranch
-                                                        ? true
-                                                        : filteredCustomers.branch === selectedBranch) && filteredCustomers.state === 'active',
+                                                (customer) =>
+                                                    (selectedBranch === 'All' || !selectedBranch ? true : customer.branch === selectedBranch) &&
+                                                    customer.state === 'active',
                                             )
-                                            .map((customer, index) => (
-                                                <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
-                                                    <TableCell>
-                                                        <Checkbox />
-                                                    </TableCell>
-                                                    <TableCell>{index + 1}</TableCell>
-                                                    <TableCell>{capitalizeFirstLetter(customer.fullname)}</TableCell>
-                                                    <TableCell>
-                                                        {[
-                                                            capitalizeFirstLetter(customer.purok || ''),
-                                                            capitalizeFirstLetter(customer.sitio || ''),
-                                                            capitalizeFirstLetter(customer.barangay || ''),
-                                                        ]
-                                                            .filter((item) => item.trim() !== '')
-                                                            .join(', ')}
-                                                    </TableCell>
-                                                    <TableCell>{customer.branch}</TableCell>
-                                                    <TableCell> {customer.duedate ? formatDate(customer.duedate) : ''}</TableCell>
-                                                    <TableCell>{customer.plan?.planName}</TableCell>
-                                                    <TableCell>{customer.notes}</TableCell>
-                                                    <TableCell className="flex gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="cursor-pointer hover:text-blue-600"
-                                                            onClick={() => handleEditCustomer(customer)}
-                                                        >
-                                                            <Edit className="h-5 w-5" />
-                                                        </Button>
-                                                        <Link
-                                                            href={`/customers/${customer.id}/info`}
-                                                            className="border-input bg-background inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 text-sm hover:text-yellow-600"
-                                                        >
-                                                            <Eye className="h-5 w-5" />
-                                                        </Link>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                            .map((customer, index) => {
+                                                const isChecked = customer.id !== undefined && selectedCustomerIds.includes(customer.id);
+
+                                                return (
+                                                    <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
+                                                        {/* Checkbox */}
+                                                        <TableCell>
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={(checked) => {
+                                                                    if (customer.id !== undefined) {
+                                                                        handleCheckboxChange(customer.id, checked as boolean);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </TableCell>
+
+                                                        {/* Row data */}
+                                                        <TableCell>{index + 1}</TableCell>
+                                                        <TableCell>{capitalizeFirstLetter(customer.fullname)}</TableCell>
+                                                        <TableCell>
+                                                            {[
+                                                                capitalizeFirstLetter(customer.purok || ''),
+                                                                capitalizeFirstLetter(customer.sitio || ''),
+                                                                capitalizeFirstLetter(customer.barangay || ''),
+                                                            ]
+                                                                .filter((item) => item.trim() !== '')
+                                                                .join(', ')}
+                                                        </TableCell>
+                                                        <TableCell>{customer.branch}</TableCell>
+                                                        <TableCell>{customer.duedate ? formatDate(customer.duedate) : ''}</TableCell>
+                                                        <TableCell>{customer.plan?.planName}</TableCell>
+                                                        <TableCell>{customer.notes}</TableCell>
+
+                                                        {/* Actions */}
+                                                        <TableCell className="flex gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="cursor-pointer hover:text-blue-600"
+                                                                onClick={() => handleEditCustomer(customer)}
+                                                            >
+                                                                <Edit className="h-5 w-5" />
+                                                            </Button>
+                                                            <Link
+                                                                href={`/customers/${customer.id}/info`}
+                                                                className="border-input bg-background inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 text-sm hover:text-yellow-600"
+                                                            >
+                                                                <Eye className="h-5 w-5" />
+                                                            </Link>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                     </TableBody>
                                 </Table>
                             </TabsContent>
@@ -287,7 +333,7 @@ export default function Index() {
                                                         : filteredCustomers.branch === selectedBranch) && filteredCustomers.state === 'archived',
                                             )
                                             .map((customer, index) => (
-                                                <TableRow key={customer.id}>
+                                                <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
                                                     <TableCell>
                                                         <Checkbox />
                                                     </TableCell>

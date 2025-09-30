@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/saveHistory', [HistoryController::class, 'store']);
     Route::get('/customers/{id}/history', [HistoryController::class, 'index']);
     Route::get('/salesResult', [HistoryController::class, 'sales']);
+    
 });
 
 Route::get('/plans/{planId}/subscribers', [PlanController::class, 'getSubscribers']);

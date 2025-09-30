@@ -45,3 +45,17 @@ export function formatDateTime(dateString: string): string {
   });
 }
 
+export const formatDate = (date: Date | string | null | undefined): string => {
+  if (!date) return "";
+
+  const d = typeof date === "string" ? new Date(date) : date;
+
+  if (isNaN(d.getTime())) return ""; // invalid date
+
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+};
+

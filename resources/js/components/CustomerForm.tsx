@@ -23,6 +23,10 @@ interface CustomerFormProps {
     onClose: () => void; // Para ma-close ang modal
     onSave: (data: Customer) => void; // Function to handle saving
 }
+interface CustomerApiResponse {
+    message: string;
+    customer: Customer;
+}
 
 export default function CustomerForm({ customerData, onClose, onSave }: CustomerFormProps) {
     const isEditing = !!customerData;
@@ -41,7 +45,6 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
             branch: '',
         },
     );
-    console.log('debug ', formData);
 
     const fetchPlans = async () => {
         try {
@@ -72,14 +75,11 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
         };
 
         try {
-            let response;
-            if (isEditing) {
-                response = await axios.put(`../updateCustomer/${customerData?.id}`, dataToSend);
-            } else {
-                response = await axios.post('../insertCustomer', dataToSend);
-            }
+            const response = isEditing
+                ? await axios.put<CustomerApiResponse>(`../updateCustomer/${customerData?.id}`, dataToSend)
+                : await axios.post<CustomerApiResponse>('../insertCustomer', dataToSend);
             console.log(response.data);
-            onSave(response.data);
+            onSave(response.data.customer);
             onClose();
         } catch (error) {
             console.error('Error saving customer:', error);
@@ -127,15 +127,7 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                     </div>{' '}
                     <div className="grid w-full max-w-sm items-center gap-1.5">
                         <Label htmlFor="first_name">Cellphone Number</Label>
-                        <Input
-                            type="text"
-                            id="phone"
-                            name="phone"
-                            placeholder="Phone Number"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            required
-                        />
+                        <Input type="text" id="phone" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} />
                     </div>
                     <div className="grid w-full max-w-sm items-center gap-1.5">
                         <Label htmlFor="plan">
@@ -222,7 +214,7 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                 <div className="mt-4 flex gap-4">
                     <Textarea
                         name="notes"
-                        value={formData.notes}
+                        value={formData.notes || ''}
                         onChange={handleChange}
                         rows={4}
                         className="w-full"

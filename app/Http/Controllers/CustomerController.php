@@ -39,6 +39,7 @@ class CustomerController extends Controller
         $validated['duedate'] = Carbon::now()->addMonth()->toDateString();
 
         $customer = Customer::create($validated);
+        $customer->load('plan');
 
         return response()->json([
             'message' => 'Customer created successfully.',

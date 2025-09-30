@@ -1,5 +1,6 @@
 import CustomerForm from '@/components/CustomerForm';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,13 +8,11 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import { capitalizeFirstLetter } from '@/lib/utils';
+import { capitalizeFirstLetter, formatDate } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
 import { Edit, Eye, Plus, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 interface Plan {
     id: number;
     planName: string;
@@ -30,10 +29,11 @@ interface Customer {
     sitio?: string;
     barangay: string;
     plan_id: string;
-    notes: string;
+    notes?: string;
     branch: string;
     plan?: Plan;
     state?: string;
+    duedate?: string;
 }
 
 const breadcrumbs = [{ title: 'Customer List', href: '/customer' }];
@@ -81,8 +81,8 @@ export default function Index() {
                     </div>
                     <div className="w-5/6">
                         <CustomerForm
-                            onSave={(data) => {
-                                console.log('Saved customer:', data);
+                            onSave={(customer: Customer) => {
+                                setCustomers((prevCustomers) => [customer, ...prevCustomers]); // <-- prepend
                                 setShowAdd(false);
                             }}
                             onClose={() => setShowAdd(false)}
@@ -103,7 +103,14 @@ export default function Index() {
                         </Button>
                     </div>
                     <div className="w-5/6">
-                        <CustomerForm customerData={selectedCustomer} onSave={() => setShowEdit(false)} onClose={() => setShowEdit(false)} />
+                        <CustomerForm
+                            customerData={selectedCustomer}
+                            onSave={async (updatedCustomer) => {
+                                await axios.get<Customer[]>('/customers').then((res) => setCustomers(res.data));
+                                setShowEdit(false);
+                            }}
+                            onClose={() => setShowEdit(false)}
+                        />
                     </div>
                 </div>
             </div>
@@ -195,6 +202,7 @@ export default function Index() {
                                             <TableHead>Name</TableHead>
                                             <TableHead>Address</TableHead>
                                             <TableHead>Branch</TableHead>
+                                            <TableHead>Duedate</TableHead>
                                             <TableHead>Plan Name</TableHead>
                                             <TableHead>Notes</TableHead>
                                             <TableHead>Action</TableHead>
@@ -225,6 +233,7 @@ export default function Index() {
                                                             .join(', ')}
                                                     </TableCell>
                                                     <TableCell>{customer.branch}</TableCell>
+                                                    <TableCell> {customer.duedate ? formatDate(customer.duedate) : ''}</TableCell>
                                                     <TableCell>{customer.plan?.planName}</TableCell>
                                                     <TableCell>{customer.notes}</TableCell>
                                                     <TableCell className="flex gap-2">

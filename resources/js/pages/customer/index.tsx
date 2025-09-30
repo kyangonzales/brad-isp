@@ -45,9 +45,8 @@ export default function Index() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedBranch, setSelectedBranch] = useState<string>('All');
     const [searchTerm, setSearchTerm] = useState<string>('');
-    const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+    const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
     const [selectAll, setSelectAll] = useState(false);
-
     useEffect(() => {
         axios
             .get<Customer[]>('/customers')
@@ -71,23 +70,24 @@ export default function Index() {
         setSelectedCustomer(customer);
         setShowEdit(true);
     };
-    const handleCheckboxChange = (id: number, checked: boolean) => {
-        if (!id) return;
 
+    const handleCheckboxChange = (customer: Customer, checked: boolean) => {
         if (checked) {
-            setSelectedCustomerIds((prev) => [...prev, id]);
+            setSelectedCustomers((prev) => [...prev, customer]);
         } else {
-            setSelectedCustomerIds((prev) => prev.filter((cid) => cid !== id));
+            setSelectedCustomers((prev) => prev.filter((c) => c.id !== customer.id));
         }
+        console.log(customer);
     };
-
     const handleSelectAll = (checked: boolean) => {
         setSelectAll(checked);
 
         if (checked) {
-            setSelectedCustomerIds(filteredCustomers.map((c) => c.id).filter((id): id is number => id !== undefined));
+            // Select all active customers from currently visible filteredCustomers
+            const customersToSelect = filteredCustomers.filter((c) => c.state?.toLowerCase() === 'active' || c.state === undefined);
+            setSelectedCustomers(customersToSelect);
         } else {
-            setSelectedCustomerIds([]);
+            setSelectedCustomers([]);
         }
     };
 
@@ -190,7 +190,7 @@ export default function Index() {
 
                             {/* Add Button */}
                             <div className="mt-0 mt-2 flex gap-2 sm:mt-0 sm:ml-auto">
-                                {selectedCustomerIds.length > 0 && (
+                                {selectedCustomers.length > 0 && (
                                     <Button onClick={handlePrint} className="flex items-center gap-2 bg-gray-500 text-white hover:bg-gray-600">
                                         <Printer className="h-5 w-5" />
                                         Print Receipt
@@ -247,7 +247,7 @@ export default function Index() {
                                                     customer.state === 'active',
                                             )
                                             .map((customer, index) => {
-                                                const isChecked = customer.id !== undefined && selectedCustomerIds.includes(customer.id);
+                                                const isChecked = customer.id !== undefined && selectedCustomers.includes(customer);
 
                                                 return (
                                                     <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
@@ -257,7 +257,7 @@ export default function Index() {
                                                                 checked={isChecked}
                                                                 onCheckedChange={(checked) => {
                                                                     if (customer.id !== undefined) {
-                                                                        handleCheckboxChange(customer.id, checked as boolean);
+                                                                        handleCheckboxChange(customer, checked as boolean);
                                                                     }
                                                                 }}
                                                             />

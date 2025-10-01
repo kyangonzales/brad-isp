@@ -13,11 +13,28 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
+// Route::middleware(['auth', 'verified'])->group(function () {
+//     Route::get('dashboard', function () {
+//         return Inertia::render('dashboard');
+//     })->name('dashboard');
+// });
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
+        $user = Auth::user();
+
+        if ($user->status === 'inactive') {
+            Auth::logout();
+            return redirect()->route('AccountDeactivated');
+        }
+
         return Inertia::render('dashboard');
     })->name('dashboard');
 });
+
+// AccountDeactivated accessible to everyone (no auth)
+Route::get('AccountDeactivated', function () {
+    return Inertia::render('superadmin/AccountDeactivated');
+})->name('AccountDeactivated');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('customer', function () {

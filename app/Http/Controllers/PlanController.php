@@ -8,10 +8,12 @@ use App\Models\Plan;
 
 class PlanController extends Controller
 {
-    // In your Laravel controller
     public function index()
     {
-        $plans = Plan::withCount('customers')->get();
+        $plans = Plan::withCount('customers')
+            ->orderBy('price', 'asc') 
+            ->get();
+
         return response()->json($plans);
     }
 
@@ -21,9 +23,6 @@ class PlanController extends Controller
 
         return response()->json($subscribers);
     }
-
-
-
 
     public function store(Request $request)
     {

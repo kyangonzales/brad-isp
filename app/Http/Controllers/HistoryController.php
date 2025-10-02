@@ -7,6 +7,7 @@ use App\Models\History;
 use App\Models\Customer;
 use Carbon\Carbon;
 use App\Models\Plan;
+use Illuminate\Support\Facades\DB;
 
 class HistoryController extends Controller
 {
@@ -112,21 +113,62 @@ class HistoryController extends Controller
             'records' => $sales
         ]);
     }
-
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    // 📊 Yearly sales total
+    public function yearlySales($year)
     {
-        //
+        $total = History::whereYear('payment_date', $year)->sum('price');
+        return response()->json(['total' => $total]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function monthlySales($year, $month)
     {
-        //
+        $total = History::whereYear('payment_date', $year)
+            ->whereMonth('payment_date', $month)
+            ->sum('price');
+        return response()->json(['total' => $total]);
+    }
+
+    public function quarterlySales($year, $quarter)
+    {
+        $months = match ((int)$quarter) {
+            1 => [1, 2, 3],
+            2 => [4, 5, 6],
+            3 => [7, 8, 9],
+            4 => [10, 11, 12],
+        };
+
+        $total = History::whereYear('payment_date', $year)
+            ->whereIn(DB::raw('MONTH(payment_date)'), $months)
+            ->sum('price');
+
+        return response()->json(['total' => $total]);
+    }
+    public function availablePeriods()
+    {
+        $periods = History::selectRaw('YEAR(payment_date) as year, MONTH(payment_date) as month')
+            ->orderBy('year', 'desc')
+            ->orderBy('month', 'asc')
+            ->get();
+
+        $result = [];
+
+        foreach ($periods as $row) {
+            $quarter = ceil($row->month / 3);
+
+            if (!isset($result[$row->year])) {
+                $result[$row->year] = [
+                    'months' => [],
+                    'quarters' => [],
+                ];
+            }
+
+            if (!in_array($row->month, $result[$row->year]['months'])) {
+                $result[$row->year]['months'][] = $row->month;
+            }
+
+            $result[$row->year]['quarters'][$quarter] = true;
+        }
+
+        return response()->json($result);
     }
 }

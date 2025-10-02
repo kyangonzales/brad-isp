@@ -57,6 +57,11 @@ Route::middleware('auth')->get('/user-management', function () {
     }
     return Inertia::render('superadmin/index');
 });
+// Route::middleware(['auth', 'superadmin'])->group(function () {
+//     Route::get('/user-management', function () {
+//         return Inertia::render('superadmin/index');
+//     })->name('user-management');
+// });
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('AccountDeactivated', function () {
@@ -91,6 +96,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/salesResult', [HistoryController::class, 'sales']);
     Route::get('/users', [RegisteredUserController::class, 'index']);
     Route::put('/userUpdate/{user}', [RegisteredUserController::class, 'update']);
+    Route::get('/sales/yearly/{year}', [HistoryController::class, 'yearlySales']);
+    Route::get('/sales/monthly/{year}/{month}', [HistoryController::class, 'monthlySales']);
+    Route::get('/sales/quarterly/{year}/{quarter}', [HistoryController::class, 'quarterlySales']);
+    Route::get('/sales/periods', [HistoryController::class, 'availablePeriods']);
 });
 
 

@@ -9,6 +9,20 @@ use Carbon\Carbon;
 
 class CustomerController extends Controller
 {
+    public function printReceipt(Request $request)
+    {
+        $ids = explode(',', $request->query('ids'));
+
+        $customers = Customer::with('plan') // <-- ✨ importante ito
+            ->whereIn('id', $ids)
+            ->get();
+
+        return inertia('customer/PrintReceipt', [
+            'customers' => $customers,
+        ]);
+    }
+
+
     /**
      * Display a listing of the resource.
      */

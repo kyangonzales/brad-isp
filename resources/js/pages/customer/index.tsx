@@ -72,27 +72,38 @@ export default function Index() {
     };
 
     const handleCheckboxChange = (customer: Customer, checked: boolean) => {
-        if (checked) {
-            setSelectedCustomers((prev) => [...prev, customer]);
-        } else {
-            setSelectedCustomers((prev) => prev.filter((c) => c.id !== customer.id));
-        }
-        console.log(customer);
+        setSelectedCustomers((prev) => {
+            const updated = checked ? [...prev, customer] : prev.filter((c) => c.id !== customer.id);
+
+            console.log('Currently selected customers:', updated);
+            return updated;
+        });
     };
+
     const handleSelectAll = (checked: boolean) => {
         setSelectAll(checked);
 
         if (checked) {
-            // Select all active customers from currently visible filteredCustomers
             const customersToSelect = filteredCustomers.filter((c) => c.state?.toLowerCase() === 'active' || c.state === undefined);
+
             setSelectedCustomers(customersToSelect);
+
+            // ✅ Log all selected customers
+            console.log('✅ Selected all customers:', customersToSelect);
         } else {
             setSelectedCustomers([]);
+            console.log('❌ Deselected all customers');
         }
     };
 
     const handlePrint = () => {
-        // window.open('/print-receipt', '_blank');
+        if (selectedCustomers.length === 0) {
+            alert('⚠️ Please select at least one customer to print.');
+            return;
+        }
+
+        const ids = selectedCustomers.map((c) => c.id).join(',');
+        window.open(`/print-receipt?ids=${ids}`, '_blank');
     };
 
     if (showAdd) {

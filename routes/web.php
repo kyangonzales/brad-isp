@@ -100,6 +100,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/monthly/{year}/{month}', [HistoryController::class, 'monthlySales']);
     Route::get('/sales/quarterly/{year}/{quarter}', [HistoryController::class, 'quarterlySales']);
     Route::get('/sales/periods', [HistoryController::class, 'availablePeriods']);
+    Route::get('/print-receipt', [CustomerController::class, 'printReceipt']);
+
 });
 
 

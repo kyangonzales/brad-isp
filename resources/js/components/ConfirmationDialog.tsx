@@ -5,7 +5,7 @@ import React from 'react';
 interface ConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => void;
+    onConfirm: () => Promise<void> | void;
     message: string;
     isLoading?: boolean;
     title?: string;
@@ -51,7 +51,7 @@ const ConfirmationDialog: React.FC<ConfirmationModalProps> = ({
                     </DialogClose>
                     <button
                         className={`ring-offset-background focus-visible:ring-ring inline-flex items-center justify-center rounded-md ${buttonColor} px-4 py-2 text-sm font-medium whitespace-nowrap text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
-                        onClick={onConfirm}
+                        onClick={async () => await onConfirm()} // ✅ dito ang mahalaga
                         disabled={isLoading}
                     >
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

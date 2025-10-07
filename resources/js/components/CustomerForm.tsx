@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import axios, { AxiosError } from 'axios';
+import { X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 interface Customer {
     id?: number;
@@ -16,6 +17,7 @@ interface Customer {
     notes?: string;
     plan_id: string;
     branch: string;
+    images?: (File | string)[];
 }
 
 interface CustomerFormProps {
@@ -43,9 +45,14 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
             notes: '',
             duedate: '',
             branch: '',
+            images: [],
         },
     );
+    const [preview1, setPreview1] = useState<string | null>(null);
+    const [preview2, setPreview2] = useState<string | null>(null);
 
+    const [file1, setFile1] = useState<File | null>(null);
+    const [file2, setFile2] = useState<File | null>(null);
     const fetchPlans = async () => {
         try {
             const response = await axios.get('/showPlans');
@@ -59,6 +66,17 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
             console.error('Failed to fetch plans:', error.message);
         }
     };
+    useEffect(() => {
+        if (isEditing && customerData?.images) {
+            // assuming images is array of URLs from backend
+            if (customerData.images[0]) {
+                setPreview1(customerData.images[0] as unknown as string); // if it's a URL
+            }
+            if (customerData.images[1]) {
+                setPreview2(customerData.images[1] as unknown as string);
+            }
+        }
+    }, [isEditing, customerData]);
 
     useEffect(() => {
         fetchPlans();
@@ -66,23 +84,76 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, which: 'image1' | 'image2') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const previewUrl = URL.createObjectURL(file);
+
+        if (which === 'image1') {
+            setFile1(file);
+            setPreview1(previewUrl);
+        } else {
+            setFile2(file);
+            setPreview2(previewUrl);
+        }
+
+        setFormData((prev) => {
+            // Force the array to be File[] for uploading
+            const updatedImages: File[] = [];
+
+            if (which === 'image1') {
+                updatedImages[0] = file;
+                if (file2) updatedImages[1] = file2;
+            } else {
+                updatedImages[1] = file;
+                if (file1) updatedImages[0] = file1;
+            }
+
+            return {
+                ...prev,
+                images: updatedImages,
+            };
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const dataToSend = {
-            ...formData,
-        };
+        const form = new FormData();
+
+        // ✅ Append all text fields from formData
+        form.append('fullname', formData.fullname);
+        form.append('phone', formData.phone || '');
+        form.append('purok', formData.purok || '');
+        form.append('sitio', formData.sitio || '');
+        form.append('barangay', formData.barangay);
+        form.append('branch', formData.branch || '');
+        form.append('notes', formData.notes || '');
+        form.append('plan_id', formData.plan_id.toString());
+        form.append('duedate', formData.duedate || '');
+
+        // ✅ Append images correctly as an array
+        if (formData.images && formData.images.length > 0) {
+            formData.images.forEach((file) => {
+                form.append('images[]', file);
+            });
+        }
 
         try {
-            const response = isEditing
-                ? await axios.put<CustomerApiResponse>(`../updateCustomer/${customerData?.id}`, dataToSend)
-                : await axios.post<CustomerApiResponse>('../insertCustomer', dataToSend);
-            console.log(response.data);
+            const url = isEditing ? `../updateCustomer/${customerData?.id}` : '../insertCustomer';
+            const response = await axios.post(url, form, {
+                headers: {
+                    // ✅ Let Axios set the correct boundary
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            console.log('✅ Saved:', response.data);
             onSave(response.data.customer);
             onClose();
         } catch (error) {
-            console.error('Error saving customer:', error);
+            console.error('❌ Error saving customer:', error);
         }
     };
 
@@ -137,6 +208,7 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                             disabled={plans.length === 0}
                             value={String(formData.plan_id)}
                             onValueChange={(value) => setFormData({ ...formData, plan_id: value })}
+                            required
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select a plan" />
@@ -221,6 +293,74 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                         placeholder="Type notes here..."
                     />
                 </div>
+
+                <div className="mt-6 w-full bg-[#2B6CA3] p-2 font-bold text-white">II. UPLOAD IMAGES FOR HOUSE ADDRESS</div>
+                <div className="mt-4 flex gap-10">
+                    {/* IMAGE 1 */}
+                    <div className="grid w-full max-w-sm items-start gap-1.5">
+                        <Label htmlFor="image1">Upload Image 1</Label>
+
+                        {!preview1 && <Input type="file" accept="image/*" onChange={(e) => handleImageChange(e, 'image1')} />}
+
+                        {preview1 && (
+                            <div className="mt-2 inline-block">
+                                <div className="relative h-40 w-40">
+                                    <img src={preview1} alt="Preview 1" className="h-full w-full rounded-lg border object-cover shadow-md" />
+                                    {/* ❌ Button now sticks *inside* the image */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (preview2) {
+                                                // ✅ Shift image2 into image1
+                                                setPreview1(preview2);
+                                                setFile1(file2);
+                                                setPreview2(null);
+                                                setFile2(null);
+                                            } else {
+                                                // ✅ No image2, just clear image1
+                                                setPreview1(null);
+                                                setFile1(null);
+                                            }
+                                        }}
+                                        className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow hover:bg-red-600"
+                                        title="Remove image"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* IMAGE 2 */}
+                    {preview1 && (
+                        <div className="grid w-full max-w-sm items-start gap-1.5">
+                            <Label htmlFor="image2">Upload Image 2</Label>
+
+                            {!preview2 && <Input type="file" accept="image/*" onChange={(e) => handleImageChange(e, 'image2')} />}
+
+                            {preview2 && (
+                                <div className="mt-2 inline-block">
+                                    <div className="relative h-40 w-40">
+                                        <img src={preview2} alt="Preview 2" className="h-full w-full rounded-lg border object-cover shadow-md" />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPreview2(null);
+                                                setFile2(null);
+                                            }}
+                                            className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow hover:bg-red-600"
+                                            title="Remove image"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 <div className="mx-4 flex gap-4 pt-10">
                     <Button
                         type="submit"

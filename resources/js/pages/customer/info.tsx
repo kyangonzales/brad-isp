@@ -19,9 +19,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { calculatePayment } from '@/lib/utils';
+import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { Archive, CreditCard, Edit2, FileText, Undo2 } from 'lucide-react';
+import { Archive, CreditCard, Edit2, FileText, Trash2, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -45,6 +46,7 @@ interface Customer {
     credit?: string;
     notes?: string;
     state?: 'active' | 'inactive' | 'archived';
+    images?: string | string[];
 }
 interface History {
     id: number;
@@ -73,6 +75,8 @@ export default function Info({ customer }: { customer: Customer }) {
     const [customerData, setCustomerData] = useState<Customer>(customer);
     const [customerHistory, setCustomerHistory] = useState<CustomerHistory | null>(null);
 
+    const [actionType, setActionType] = useState<'archive' | 'activate' | 'delete' | null>(null);
+
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [open, setOpen] = useState(false);
@@ -86,8 +90,10 @@ export default function Info({ customer }: { customer: Customer }) {
     if (!customer) return <div className="py-10 text-center text-gray-500">Loading customer data...</div>;
 
     const address = [customer.purok, customer.sitio, customer.barangay].filter(Boolean).join(', ');
+    const [selectedImage, setSelectedImage] = useState(null);
+    const images = Array.isArray(customerData?.images) ? customerData.images : customerData?.images ? [customerData.images] : [];
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         axios
@@ -99,12 +105,6 @@ export default function Info({ customer }: { customer: Customer }) {
                 console.error('Error fetching history:', err);
             });
     }, [customer.id]);
-
-    console.log("Customer's History:", customerHistory);
-
-    console.log("Customer's id:", customer.id);
-    // if (loading) return <p>Loading...</p>;
-    // if (!customer) return <p>No customer history found.</p>;
 
     const handlePayment = async () => {
         try {
@@ -151,26 +151,33 @@ export default function Info({ customer }: { customer: Customer }) {
             toast.error('Failed to update notes');
         }
     };
-    const handleToggleCustomerState = () => {
+    const handleToggleCustomerState = async () => {
         const newState = customerData.state === 'active' ? 'archived' : 'active';
-        setIsLoading(true);
-
-        axios
-            .put(`/updateState/${customerData.id}`, { state: newState })
-            .then(() => {
-                setCustomerData((prev) => ({ ...prev, state: newState }));
-                toast.success(`Customer ${newState === 'active' ? 'activated' : 'archived'} successfully.`);
-            })
-            .catch(() => {
-                toast.error('Failed to update customer state.');
-            })
-            .finally(() => {
-                setIsLoading(false);
-                setConfirmOpen(false);
-            });
+        try {
+            await axios.put(`/updateState/${customerData.id}`, { state: newState });
+            setCustomerData((prev) => ({ ...prev, state: newState }));
+            toast.success(`Customer ${newState === 'active' ? 'activated' : 'archived'} successfully.`);
+            setConfirmOpen(false);
+        } catch (error) {
+            toast.error('Failed to update customer state.');
+            throw error;
+        }
     };
 
-    console.log(customer.duedate);
+    const handleDeleteCustomer = async () => {
+        try {
+            await axios.delete(`/customers/${customerData.id}`);
+            toast.success('Customer deleted permanently.');
+            setConfirmOpen(false);
+            setTimeout(() => {
+                router.visit('/customer');
+            }, 1500);
+        } catch (error) {
+            toast.error('Failed to delete customer.');
+            throw error;
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={[{ title: 'Customer Info', href: '/customer' }]}>
             <div className="flex min-h-screen justify-center bg-gray-50 px-4 py-5">
@@ -352,8 +359,27 @@ export default function Info({ customer }: { customer: Customer }) {
                             <TabsList>
                                 <TabsTrigger value="personal">Personal Info</TabsTrigger>
                                 <TabsTrigger value="history">History</TabsTrigger>
+                                <TabsTrigger value="home">Home Picture</TabsTrigger>
                             </TabsList>
-
+                            <TabsContent value="home">
+                                <Card className="border border-gray-200 shadow-sm">
+                                    <CardHeader>
+                                        <CardTitle className="text-xl font-semibold text-gray-800">Home Picture</CardTitle>
+                                        <CardDescription>Picture of the customer's home.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <img
+                                            src={
+                                                customerData.images
+                                                    ? typeof customerData.images === 'string'
+                                                        ? customerData.images
+                                                        : customerData.images[0]
+                                                    : '/placeholder-image.png'
+                                            }
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
                             {/* PERSONAL INFO */}
                             <TabsContent value="personal">
                                 <Card className="border border-gray-200 shadow-sm">
@@ -376,17 +402,33 @@ export default function Info({ customer }: { customer: Customer }) {
                                                     <TableCell>{customer.phone ?? 'N/A'}</TableCell>
                                                     <TableCell>{address || 'N/A'}</TableCell>
                                                     <TableCell>{customerData.notes || 'N/A'}</TableCell>
-                                                    <TableCell className="text-center">
+                                                    <TableCell className="flex items-center justify-center gap-2 text-center">
+                                                        {/* Archive / Activate */}
                                                         <Button
-                                                            onClick={() => setConfirmOpen(true)}
+                                                            onClick={() => {
+                                                                setActionType(customerData.state === 'archived' ? 'activate' : 'archive');
+                                                                setConfirmOpen(true);
+                                                            }}
                                                             className={`rounded-lg p-2 text-sm ${
                                                                 customerData.state === 'archived'
                                                                     ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                                    : 'bg-red-500 text-white hover:bg-red-600'
+                                                                    : 'bg-yellow-500 text-white hover:bg-yellow-600'
                                                             }`}
-                                                            title={customerData.state === 'archived' ? 'Activate' : 'Archive'} // Tooltip
+                                                            title={customerData.state === 'archived' ? 'Activate' : 'Archive'}
                                                         >
                                                             {customerData.state === 'archived' ? <Undo2 size={18} /> : <Archive size={18} />}
+                                                        </Button>
+
+                                                        {/* Permanent Delete */}
+                                                        <Button
+                                                            onClick={() => {
+                                                                setActionType('delete');
+                                                                setConfirmOpen(true);
+                                                            }}
+                                                            className="rounded-lg bg-red-600 p-2 text-sm text-white hover:bg-red-700"
+                                                            title="Permanently Delete"
+                                                        >
+                                                            <Trash2 size={18} />
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -444,12 +486,33 @@ export default function Info({ customer }: { customer: Customer }) {
                 <ConfirmationDialog
                     isOpen={confirmOpen}
                     onClose={() => setConfirmOpen(false)}
-                    onConfirm={handleToggleCustomerState}
-                    isLoading={isLoading}
-                    title={customerData.state === 'archived' ? 'Confirm Activation' : 'Confirm Archival'}
-                    message={`Are you sure you want to ${customerData.state === 'archived' ? 'activate' : 'archive'} this customer?`}
-                    confirmLabel={customerData.state === 'archived' ? 'Activate' : 'Archive'}
-                    confirmColor={customerData.state === 'archived' ? 'blue' : 'gray'}
+                    isLoading={loading}
+                    title={
+                        actionType === 'delete' ? 'Permanently Delete Customer' : actionType === 'activate' ? 'Activate Customer' : 'Archive Customer'
+                    }
+                    message={
+                        actionType === 'delete'
+                            ? 'Are you sure you want to permanently delete this customer? This action cannot be undone.'
+                            : actionType === 'activate'
+                              ? 'Are you sure you want to activate this customer?'
+                              : 'Are you sure you want to archive this customer?'
+                    }
+                    confirmLabel={actionType === 'delete' ? 'Delete' : actionType === 'activate' ? 'Activate' : 'Archive'}
+                    confirmColor={actionType === 'delete' ? 'red' : actionType === 'archive' ? 'gray' : 'blue'}
+                    onConfirm={async () => {
+                        setLoading(true);
+                        try {
+                            if (actionType === 'delete') {
+                                await handleDeleteCustomer();
+                            } else {
+                                await handleToggleCustomerState();
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }}
                 />
             </div>
         </AppLayout>

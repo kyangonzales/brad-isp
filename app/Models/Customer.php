@@ -10,6 +10,9 @@ class Customer extends Model
     use HasFactory;
 
     protected $table = 'customers';
+    protected $casts = [
+        'images' => 'array', // ✅ automatic convert JSON <-> array
+    ];
 
     protected $fillable = [
         'fullname',
@@ -23,6 +26,8 @@ class Customer extends Model
         'duedate',
         'credit',
         'state',
+        'images',
+
     ];
 
     public function plan()

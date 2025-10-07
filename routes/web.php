@@ -84,9 +84,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/insertCustomer', [CustomerController::class, 'store']);
     Route::get('/customers', [CustomerController::class, 'index']);
-    Route::put('/updateCustomer/{id}', [CustomerController::class, 'update']);
+    Route::match(['put', 'post'], '/updateCustomer/{id}', [CustomerController::class, 'update']);
     Route::put('/updateNotes/{id}', [CustomerController::class, 'updateNotes']);
     Route::put('/updateState/{id}', [CustomerController::class, 'updateState']);
+    Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+
     Route::post('/plans', [PlanController::class, 'store']);
     Route::get('/showPlans', [PlanController::class, 'index']);
     Route::delete('/plans/{id}', [PlanController::class, 'destroy']);
@@ -101,9 +103,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/quarterly/{year}/{quarter}', [HistoryController::class, 'quarterlySales']);
     Route::get('/sales/periods', [HistoryController::class, 'availablePeriods']);
     Route::get('/print-receipt', [CustomerController::class, 'printReceipt']);
-
 });
 
+Route::get('/check-cloudinary', function () {
+    return config('cloudinary.cloud_url');
+});
+Route::get('/test-env', function () {
+    return file_exists(base_path('.env'))
+        ? '✅ ENV file exists'
+        : '❌ ENV file NOT FOUND';
+});
 
 Route::get('/plans/{planId}/subscribers', [PlanController::class, 'getSubscribers']);
 

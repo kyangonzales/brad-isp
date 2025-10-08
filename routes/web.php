@@ -88,20 +88,25 @@ Route::middleware('auth')->group(function () {
     Route::put('/updateNotes/{id}', [CustomerController::class, 'updateNotes']);
     Route::put('/updateState/{id}', [CustomerController::class, 'updateState']);
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+    Route::get('/countCustomers', action: [CustomerController::class, 'countCustomers']);
 
     Route::post('/plans', [PlanController::class, 'store']);
     Route::get('/showPlans', [PlanController::class, 'index']);
     Route::delete('/plans/{id}', [PlanController::class, 'destroy']);
     Route::put('/plans/{id}', [PlanController::class, 'update']);
+
     Route::post('/saveHistory', [HistoryController::class, 'store']);
     Route::get('/customers/{id}/history', [HistoryController::class, 'index']);
     Route::get('/salesResult', [HistoryController::class, 'sales']);
+
     Route::get('/users', [RegisteredUserController::class, 'index']);
     Route::put('/userUpdate/{user}', [RegisteredUserController::class, 'update']);
+
     Route::get('/sales/yearly/{year}', [HistoryController::class, 'yearlySales']);
     Route::get('/sales/monthly/{year}/{month}', [HistoryController::class, 'monthlySales']);
     Route::get('/sales/quarterly/{year}/{quarter}', [HistoryController::class, 'quarterlySales']);
     Route::get('/sales/periods', [HistoryController::class, 'availablePeriods']);
+
     Route::get('/print-receipt', [CustomerController::class, 'printReceipt']);
 });
 

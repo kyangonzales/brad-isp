@@ -25,24 +25,33 @@ class CustomerController extends Controller
             'customers' => $customers,
         ]);
     }
-
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function countCustomers()
     {
-        $customers = Customer::with('plan')
+        $total = Customer::count();
+        $due = Customer::whereDate('duedate', '<=', now())->count();
+
+        return response()->json([
+            'total_customers' => $total,
+            'due_customers' => $due,
+        ]);
+    }
+
+    public function index(Request $request)
+    {
+        $query = Customer::with('plan')
             ->orderBy('duedate', 'asc')
-            ->orderBy('id', 'asc') // tie-breaker
-            ->get();
+            ->orderBy('id', 'asc'); // tie-breaker
+
+        // ✨ Kung may filter=due sa query string, i-filter ang mga due customers
+        if ($request->query('filter') === 'due') {
+            $query->whereDate('duedate', '<=', now());
+        }
+
+        $customers = $query->get();
 
         return response()->json($customers);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -110,11 +119,6 @@ class CustomerController extends Controller
             'customer' => $customer
         ], 201);
     }
-
-
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
         $customer = Customer::with('plan')->findOrFail($id);
@@ -123,9 +127,6 @@ class CustomerController extends Controller
             'customer' => $customer,
         ]);
     }
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
         $customer = Customer::findOrFail($id);
@@ -195,7 +196,6 @@ class CustomerController extends Controller
             'customer' => $customer
         ]);
     }
-
     public function updateNotes(Request $request, $id)
     {
         $customer = Customer::findOrFail($id);
@@ -225,9 +225,6 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
         $customer = Customer::find($id);

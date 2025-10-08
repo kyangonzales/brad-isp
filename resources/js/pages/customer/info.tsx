@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import CustomerImagesCard from '@/components/CustomerImagesCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -26,7 +27,6 @@ import { Archive, CreditCard, Edit2, FileText, Trash2, Undo2 } from 'lucide-reac
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
 interface Plan {
     id: number;
     planName: string;
@@ -362,23 +362,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                 <TabsTrigger value="home">Home Picture</TabsTrigger>
                             </TabsList>
                             <TabsContent value="home">
-                                <Card className="border border-gray-200 shadow-sm">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl font-semibold text-gray-800">Home Picture</CardTitle>
-                                        <CardDescription>Picture of the customer's home.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <img
-                                            src={
-                                                customerData.images
-                                                    ? typeof customerData.images === 'string'
-                                                        ? customerData.images
-                                                        : customerData.images[0]
-                                                    : '/placeholder-image.png'
-                                            }
-                                        />
-                                    </CardContent>
-                                </Card>
+                                <CustomerImagesCard images={customerData?.images ?? null} />
                             </TabsContent>
                             {/* PERSONAL INFO */}
                             <TabsContent value="personal">

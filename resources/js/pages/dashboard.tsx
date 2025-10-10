@@ -3,11 +3,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { capitalizeFirstLetter, formatDate } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { BarChart3, Calendar, PieChart } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function getQuarter(month: number) {
@@ -50,20 +50,21 @@ export default function Dashboard() {
             fetchCustomers('/customers?filter=due');
         }
     }, [showTable]);
+
     const fetchCustomers = async (url: string) => {
         try {
             const res = await axios.get(url);
             setCustomers(res.data);
+
+            console.log('res.data', res.data);
         } catch (err) {
             console.error('Failed to fetch customers:', err);
         }
     };
 
-    // ✨ Toggle function
     const toggleTable = (type: 'all' | 'due') => {
         setShowTable((prev) => (prev === type ? null : type));
     };
-
     const fetchCustomerCounts = async () => {
         try {
             const res = await axios.get('/countCustomers');
@@ -109,17 +110,17 @@ export default function Dashboard() {
     return (
         <AppLayout breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }]}>
             <Head title="Dashboard" />
-            <div className="grid gap-8 p-6 md:grid-cols-6">
+            <div className="grid gap-4 p-4 md:grid-cols-5">
                 {/* 🟩 Yearly Sales */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-2xl font-semibold text-[#1C3694]">Yearly Sales</CardTitle>
-                        <Calendar className="h-8 w-8 text-[#1C3694]" />
+                <Card className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1">
+                        <CardTitle className="text-lg font-bold text-[#1C3694]">Yearly Sales</CardTitle>
+                        <Calendar className="h-6 w-6 text-[#1C3694]" />
                     </CardHeader>
-                    <CardContent>
-                        <Label>Select Year</Label>
+                    <CardContent className="space-y-3">
+                        <Label className="text-sm text-gray-600">Select Year</Label>
                         <Select value={year} onValueChange={setYear}>
-                            <SelectTrigger className="mt-2">
+                            <SelectTrigger className="text-sm">
                                 <SelectValue placeholder="Select year" />
                             </SelectTrigger>
                             <SelectContent>
@@ -132,22 +133,22 @@ export default function Dashboard() {
                             </SelectContent>
                         </Select>
 
-                        <p className="mt-8 text-5xl font-extrabold tracking-tight text-green-600">
+                        <p className="pt-4 text-3xl font-extrabold tracking-tight text-green-600">
                             {loading ? 'Loading...' : `₱${yearlySales.toLocaleString()}`}
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* 🟦 Monthly Sales */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-2xl font-semibold text-[#1C3694]">Monthly Sales</CardTitle>
-                        <BarChart3 className="h-8 w-8 text-[#1C3694]" />
+                <Card className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1">
+                        <CardTitle className="text-lg font-bold text-[#1C3694]">Monthly Sales</CardTitle>
+                        <BarChart3 className="h-6 w-6 text-[#1C3694]" />
                     </CardHeader>
-                    <CardContent>
-                        <Label>Select Month</Label>
+                    <CardContent className="space-y-3">
+                        <Label className="text-sm text-gray-600">Select Month</Label>
                         <Select value={month} onValueChange={setMonth}>
-                            <SelectTrigger className="mt-2">
+                            <SelectTrigger className="text-sm">
                                 <SelectValue placeholder="Select month" />
                             </SelectTrigger>
                             <SelectContent>
@@ -161,22 +162,22 @@ export default function Dashboard() {
                             </SelectContent>
                         </Select>
 
-                        <p className="mt-8 text-5xl font-extrabold tracking-tight text-blue-600">
+                        <p className="pt-4 text-3xl font-extrabold tracking-tight text-blue-600">
                             {loading ? 'Loading...' : `₱${monthlySales.toLocaleString()}`}
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* 🟨 Quarterly Sales */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-2xl font-semibold text-[#1C3694]">Quarterly Sales</CardTitle>
-                        <PieChart className="h-8 w-8 text-[#1C3694]" />
+                <Card className="h-full">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1">
+                        <CardTitle className="text-lg font-bold text-[#1C3694]">Quarterly Sales</CardTitle>
+                        <PieChart className="h-6 w-6 text-[#1C3694]" />
                     </CardHeader>
-                    <CardContent>
-                        <Label>Select Quarter</Label>
+                    <CardContent className="space-y-3">
+                        <Label className="text-sm text-gray-600">Select Quarter</Label>
                         <Select value={quarter} onValueChange={setQuarter}>
-                            <SelectTrigger className="mt-2">
+                            <SelectTrigger className="text-sm">
                                 <SelectValue placeholder="Select quarter" />
                             </SelectTrigger>
                             <SelectContent>
@@ -190,33 +191,35 @@ export default function Dashboard() {
                             </SelectContent>
                         </Select>
 
-                        <p className="mt-8 text-5xl font-extrabold tracking-tight text-purple-600">
+                        <p className="pt-4 text-3xl font-extrabold tracking-tight text-purple-600">
                             {loading ? 'Loading...' : `₱${quarterlySales.toLocaleString()}`}
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card onClick={() => toggleTable('all')} className="cursor-pointer transition hover:shadow-lg">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-2xl font-semibold text-[#1C3694]">All Customers</CardTitle>
-                        <BarChart3 className="h-8 w-8 text-[#1C3694]" />
+                {/* 👥 All Customers */}
+                <Card onClick={() => toggleTable('all')} className="h-full cursor-pointer transition hover:shadow-lg">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1">
+                        <CardTitle className="text-lg font-bold text-[#1C3694]">All Customers</CardTitle>
+                        <BarChart3 className="h-6 w-6 text-[#1C3694]" />
                     </CardHeader>
                     <CardContent>
-                        <p className="mt-8 text-5xl font-extrabold tracking-tight text-[#1C3694]">{totalCustomers}</p>
+                        <p className="pt-4 text-4xl font-extrabold tracking-tight text-[#1C3694]">{totalCustomers}</p>
                     </CardContent>
                 </Card>
 
                 {/* 📅 Due Customers */}
-                <Card onClick={() => toggleTable('due')} className="cursor-pointer transition hover:shadow-lg">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-2xl font-semibold text-[#B91C1C]">Due Customers</CardTitle>
-                        <Calendar className="h-8 w-8 text-[#B91C1C]" />
+                <Card onClick={() => toggleTable('due')} className="h-full cursor-pointer transition hover:shadow-lg">
+                    <CardHeader className="flex flex-row items-center justify-between pb-1">
+                        <CardTitle className="text-lg font-bold text-[#B91C1C]">Due Customers</CardTitle>
+                        <Calendar className="h-6 w-6 text-[#B91C1C]" />
                     </CardHeader>
                     <CardContent>
-                        <p className="mt-8 text-5xl font-extrabold tracking-tight text-[#B91C1C]">{dueCustomers}</p>
+                        <p className="pt-4 text-4xl font-extrabold tracking-tight text-[#B91C1C]">{dueCustomers}</p>
                     </CardContent>
                 </Card>
             </div>
+
             {showTable && (
                 <div className="p-6">
                     <div className="mb-4 flex items-center justify-between">
@@ -226,16 +229,16 @@ export default function Dashboard() {
                         </button>
                     </div>
 
-                    <div className="overflow-x-auto rounded-lg border">
+                    <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>No</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Address</TableHead>
                                     <TableHead>Branch</TableHead>
                                     <TableHead>Duedate</TableHead>
                                     <TableHead>Plan Name</TableHead>
-                                    <TableHead>Notes</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -246,14 +249,22 @@ export default function Dashboard() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    customers.map((c) => (
+                                    customers.map((c, index) => (
                                         <TableRow key={c.id}>
+                                            <TableCell>{index + 1 + '.'}</TableCell>
                                             <TableCell>{c.fullname}</TableCell>
-                                            <TableCell>{`${c.purok ?? ''} ${c.sitio ?? ''} ${c.barangay}`}</TableCell>
+                                            <TableCell>
+                                                {[
+                                                    capitalizeFirstLetter(c.purok || ''),
+                                                    capitalizeFirstLetter(c.sitio || ''),
+                                                    capitalizeFirstLetter(c.barangay || ''),
+                                                ]
+                                                    .filter((item) => item.trim() !== '')
+                                                    .join(', ')}
+                                            </TableCell>
                                             <TableCell>{c.branch ?? '-'}</TableCell>
-                                            <TableCell>{c.duedate ? new Date(c.duedate).toLocaleDateString() : '-'}</TableCell>
-                                            <TableCell>{c.plan?.name ?? '-'}</TableCell>
-                                            <TableCell>{c.notes ?? '-'}</TableCell>
+                                            <TableCell>{c.duedate ? formatDate(c.duedate) : ''}</TableCell>
+                                            <TableCell>{c.plan?.planName ?? '-'}</TableCell>
                                         </TableRow>
                                     ))
                                 )}

@@ -92,7 +92,6 @@ export default function Info({ customer }: { customer: Customer }) {
     const address = [customer.purok, customer.sitio, customer.barangay].filter(Boolean).join(', ');
     const [selectedImage, setSelectedImage] = useState(null);
     const images = Array.isArray(customerData?.images) ? customerData.images : customerData?.images ? [customerData.images] : [];
-
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -107,6 +106,7 @@ export default function Info({ customer }: { customer: Customer }) {
     }, [customer.id]);
 
     const handlePayment = async () => {
+        setIsLoading(true);
         try {
             const response = await axios.post(`/saveHistory`, {
                 customer_id: customer.id,
@@ -127,6 +127,8 @@ export default function Info({ customer }: { customer: Customer }) {
         } catch (error) {
             console.error('Payment failed:', error);
             alert('Payment failed!');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -179,7 +181,12 @@ export default function Info({ customer }: { customer: Customer }) {
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Customer Info', href: '/customer' }]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Customer List', href: '/customer' },
+                { title: 'Customer Info', href: '' },
+            ]}
+        >
             <div className="flex min-h-screen justify-center bg-gray-50 px-4 py-5">
                 <Card className="relative w-full max-w-6xl rounded-xl border-x border-b border-gray-100 bg-white pt-5 shadow-lg">
                     <CardHeader
@@ -262,6 +269,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                                 name="paymentAmount"
                                                 value={paymentAmount}
                                                 onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                                                disabled={isLoading}
                                             />
                                         </div>
                                     </div>
@@ -276,8 +284,9 @@ export default function Info({ customer }: { customer: Customer }) {
                                             type="button"
                                             className="rounded-md bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
                                             onClick={handlePayment}
+                                            disabled={isLoading || !paymentAmount}
                                         >
-                                            Pay bill
+                                            {isLoading ? 'Processing...' : 'Pay bill'}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
@@ -388,6 +397,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                                     <TableCell>{customerData.notes || 'N/A'}</TableCell>
                                                     <TableCell className="flex items-center justify-center gap-2 text-center">
                                                         {/* Archive / Activate */}
+
                                                         <Button
                                                             onClick={() => {
                                                                 setActionType(customerData.state === 'archived' ? 'activate' : 'archive');

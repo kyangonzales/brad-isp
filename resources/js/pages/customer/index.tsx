@@ -5,14 +5,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { capitalizeFirstLetter, formatDate, getDueDateClass } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { Edit, Eye, Plus, Printer, Search, X } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import { Edit, Eye, FileText, Plus, Printer, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
 interface Plan {
     id: number;
     planName: string;
@@ -47,11 +52,14 @@ export default function Index() {
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
     const [selectAll, setSelectAll] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
         axios
             .get<Customer[]>('/customers')
             .then((response) => {
                 setCustomers(response.data);
+                setIsLoading(false);
             })
             .catch((error) => {
                 console.error('Error fetching customers:', error);
@@ -87,9 +95,6 @@ export default function Index() {
             const customersToSelect = filteredCustomers.filter((c) => c.state?.toLowerCase() === 'active' || c.state === undefined);
 
             setSelectedCustomers(customersToSelect);
-
-            // ✅ Log all selected customers
-            console.log('✅ Selected all customers:', customersToSelect);
         } else {
             setSelectedCustomers([]);
             console.log('❌ Deselected all customers');
@@ -104,6 +109,89 @@ export default function Index() {
 
         const ids = selectedCustomers.map((c) => c.id).join(',');
         window.open(`/print-receipt?ids=${ids}`, '_blank');
+    };
+    const exportCustomerPDF = () => {
+        if (customers.length === 0) {
+            alert('No customers to export.');
+            return;
+        }
+
+        const doc = new jsPDF();
+        const now = new Date();
+        // -------------------------
+        // Header: logo, title, date
+        // -------------------------
+        // Optional: if you have a base64 logo, use doc.addImage(imageData, 'PNG', x, y, width, height);
+        // Example: doc.addImage(logoBase64, 'PNG', 10, 10, 30, 15);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ULYCES ISP', 14, 15);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const dateStr = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: '2-digit',
+        });
+        // Format time: 03:05 PM
+        const timeStr = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
+
+        doc.text(`Generated: ${dateStr} ${timeStr}`, 150, 15, { align: 'right' });
+        doc.text(`Total Customers: ${customers.length}`, 150, 22, { align: 'right' });
+
+        // -------------------------
+        // Table columns
+        // -------------------------
+        const tableColumn = ['No.', 'Name', 'Address', 'Branch', 'Duedate', 'Plan Name'];
+        const tableRows: any[] = [];
+
+        customers.forEach((customer, index) => {
+            const name = customer.fullname || '';
+            const address = [customer.purok, customer.sitio, customer.barangay].filter(Boolean).join(', ');
+            const branch = customer.branch || '';
+            const duedate = formatDate(customer.duedate) || '';
+            const planName = customer.plan?.planName || '';
+
+            tableRows.push([index + 1, name, address, branch, duedate, planName]);
+        });
+
+        // -------------------------
+        // Generate table
+        // -------------------------
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 30, // start below the header
+            styles: {
+                fontSize: 10,
+                cellPadding: 3,
+            },
+            headStyles: {
+                fillColor: [28, 54, 148], // theme blue
+                textColor: 255,
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [240, 240, 240],
+            },
+            columnStyles: {
+                0: { cellWidth: 12, halign: 'center' }, // No. column
+                1: { cellWidth: 40 },
+                2: { cellWidth: 50 },
+                3: { cellWidth: 30 },
+                4: { halign: 'center' },
+                5: { cellWidth: 30 },
+            },
+            margin: { top: 30, left: 5, right: 5 },
+            tableWidth: 'auto',
+        });
+
+        doc.save(`customers_${new Date().toISOString()}.pdf`);
     };
 
     if (showAdd) {
@@ -213,6 +301,12 @@ export default function Index() {
                                 >
                                     <Plus className="h-5 w-5" /> Add New Customer
                                 </Button>
+                                <Button
+                                    onClick={() => exportCustomerPDF()}
+                                    className="flex items-center gap-2 bg-[#1976D2] text-white hover:bg-[#125A9C]"
+                                >
+                                    <FileText className="h-5 w-5" /> Export PDF
+                                </Button>
                             </div>
                         </div>
 
@@ -251,66 +345,99 @@ export default function Index() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredCustomers
-                                            .filter(
-                                                (customer) =>
-                                                    (selectedBranch === 'All' || !selectedBranch ? true : customer.branch === selectedBranch) &&
-                                                    customer.state === 'active',
-                                            )
-                                            .map((customer, index) => {
-                                                const isChecked = customer.id !== undefined && selectedCustomers.includes(customer);
+                                        {isLoading
+                                            ? Array.from({ length: 5 }).map((_, index) => (
+                                                  <TableRow key={index}>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-4 rounded" /> {/* checkbox skeleton */}
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-6" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-40" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-52" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-24" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-24" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-32" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-16" />
+                                                      </TableCell>
+                                                      <TableCell className="flex gap-2">
+                                                          <Skeleton className="h-10 w-10 rounded-md" />
+                                                          <Skeleton className="h-10 w-10 rounded-md" />
+                                                      </TableCell>
+                                                  </TableRow>
+                                              ))
+                                            : filteredCustomers
+                                                  .filter(
+                                                      (customer) =>
+                                                          (selectedBranch === 'All' || !selectedBranch ? true : customer.branch === selectedBranch) &&
+                                                          customer.state === 'active',
+                                                  )
+                                                  .map((customer, index) => {
+                                                      const isChecked = customer.id !== undefined && selectedCustomers.includes(customer);
 
-                                                return (
-                                                    <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
-                                                        {/* Checkbox */}
-                                                        <TableCell>
-                                                            <Checkbox
-                                                                checked={isChecked}
-                                                                onCheckedChange={(checked) => {
-                                                                    if (customer.id !== undefined) {
-                                                                        handleCheckboxChange(customer, checked as boolean);
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </TableCell>
+                                                      return (
+                                                          <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
+                                                              {/* Checkbox */}
+                                                              <TableCell>
+                                                                  <Checkbox
+                                                                      checked={isChecked}
+                                                                      onCheckedChange={(checked) => {
+                                                                          if (customer.id !== undefined) {
+                                                                              handleCheckboxChange(customer, checked as boolean);
+                                                                          }
+                                                                      }}
+                                                                  />
+                                                              </TableCell>
 
-                                                        {/* Row data */}
-                                                        <TableCell>{index + 1}</TableCell>
-                                                        <TableCell>{capitalizeFirstLetter(customer.fullname)}</TableCell>
-                                                        <TableCell>
-                                                            {[
-                                                                capitalizeFirstLetter(customer.purok || ''),
-                                                                capitalizeFirstLetter(customer.sitio || ''),
-                                                                capitalizeFirstLetter(customer.barangay || ''),
-                                                            ]
-                                                                .filter((item) => item.trim() !== '')
-                                                                .join(', ')}
-                                                        </TableCell>
-                                                        <TableCell>{customer.branch}</TableCell>
-                                                        <TableCell>{customer.duedate ? formatDate(customer.duedate) : ''}</TableCell>
-                                                        <TableCell>{customer.plan?.planName}</TableCell>
-                                                        <TableCell>{customer.notes}</TableCell>
+                                                              {/* Row data */}
+                                                              <TableCell>{index + 1}</TableCell>
+                                                              <TableCell>{capitalizeFirstLetter(customer.fullname)}</TableCell>
+                                                              <TableCell>
+                                                                  {[
+                                                                      capitalizeFirstLetter(customer.purok || ''),
+                                                                      capitalizeFirstLetter(customer.sitio || ''),
+                                                                      capitalizeFirstLetter(customer.barangay || ''),
+                                                                  ]
+                                                                      .filter((item) => item.trim() !== '')
+                                                                      .join(', ')}
+                                                              </TableCell>
+                                                              <TableCell>{customer.branch}</TableCell>
+                                                              <TableCell>{customer.duedate ? formatDate(customer.duedate) : ''}</TableCell>
+                                                              <TableCell>{customer.plan?.planName}</TableCell>
+                                                              <TableCell>{customer.notes}</TableCell>
 
-                                                        {/* Actions */}
-                                                        <TableCell className="flex gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="cursor-pointer hover:text-blue-600"
-                                                                onClick={() => handleEditCustomer(customer)}
-                                                            >
-                                                                <Edit className="h-5 w-5" />
-                                                            </Button>
-                                                            <Link
-                                                                href={`/customers/${customer.id}/info`}
-                                                                className="border-input bg-background inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 text-sm hover:text-yellow-600"
-                                                            >
-                                                                <Eye className="h-5 w-5" />
-                                                            </Link>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
+                                                              {/* Actions */}
+                                                              <TableCell className="flex gap-2">
+                                                                  <Button
+                                                                      variant="outline"
+                                                                      size="icon"
+                                                                      className="cursor-pointer hover:text-blue-600"
+                                                                      onClick={() => handleEditCustomer(customer)}
+                                                                  >
+                                                                      <Edit className="h-5 w-5" />
+                                                                  </Button>
+                                                                  <Link
+                                                                      href={`/customers/${customer.id}/info`}
+                                                                      className="border-input bg-background inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 text-sm hover:text-yellow-600"
+                                                                  >
+                                                                      <Eye className="h-5 w-5" />
+                                                                  </Link>
+                                                              </TableCell>
+                                                          </TableRow>
+                                                      );
+                                                  })}
                                     </TableBody>
                                 </Table>
                             </TabsContent>
@@ -320,7 +447,9 @@ export default function Index() {
                                 </p>
 
                                 <Table>
-                                    <TableCaption>A list of your active customers.</TableCaption>
+                                    <TableCaption>
+                                        A list of your <b>Inactive customers</b>.
+                                    </TableCaption>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>
@@ -336,50 +465,84 @@ export default function Index() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredCustomers
-                                            .filter(
-                                                (filteredCustomers) =>
-                                                    (selectedBranch === 'All' || !selectedBranch
-                                                        ? true
-                                                        : filteredCustomers.branch === selectedBranch) && filteredCustomers.state === 'archived',
-                                            )
-                                            .map((customer, index) => (
-                                                <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
-                                                    <TableCell>
-                                                        <Checkbox />
-                                                    </TableCell>
-                                                    <TableCell>{index + 1}</TableCell>
-                                                    <TableCell>{capitalizeFirstLetter(customer.fullname)}</TableCell>
-                                                    <TableCell>
-                                                        {[
-                                                            capitalizeFirstLetter(customer.purok || ''),
-                                                            capitalizeFirstLetter(customer.sitio || ''),
-                                                            capitalizeFirstLetter(customer.barangay || ''),
-                                                        ]
-                                                            .filter((item) => item.trim() !== '')
-                                                            .join(', ')}
-                                                    </TableCell>
-                                                    <TableCell>{customer.branch}</TableCell>
-                                                    <TableCell>{customer.plan?.planName}</TableCell>
-                                                    <TableCell>{customer.notes}</TableCell>
-                                                    <TableCell className="flex gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="cursor-pointer hover:text-blue-600"
-                                                            onClick={() => handleEditCustomer(customer)}
-                                                        >
-                                                            <Edit className="h-5 w-5" />
-                                                        </Button>
-                                                        <Link
-                                                            href={`/customers/${customer.id}/info`}
-                                                            className="border-input bg-background inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 text-sm hover:text-yellow-600"
-                                                        >
-                                                            <Eye className="h-5 w-5" />
-                                                        </Link>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                        {isLoading
+                                            ? Array.from({ length: 5 }).map((_, index) => (
+                                                  <TableRow key={index}>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-4 rounded" /> {/* checkbox skeleton */}
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-6" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-40" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-52" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-24" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-24" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-32" />
+                                                      </TableCell>
+                                                      <TableCell>
+                                                          <Skeleton className="h-4 w-16" />
+                                                      </TableCell>
+                                                      <TableCell className="flex gap-2">
+                                                          <Skeleton className="h-10 w-10 rounded-md" />
+                                                          <Skeleton className="h-10 w-10 rounded-md" />
+                                                      </TableCell>
+                                                  </TableRow>
+                                              ))
+                                            : filteredCustomers
+                                                  .filter(
+                                                      (filteredCustomers) =>
+                                                          (selectedBranch === 'All' || !selectedBranch
+                                                              ? true
+                                                              : filteredCustomers.branch === selectedBranch) &&
+                                                          filteredCustomers.state === 'archived',
+                                                  )
+                                                  .map((customer, index) => (
+                                                      <TableRow key={customer.id} className={getDueDateClass(customer.duedate || null)}>
+                                                          <TableCell>
+                                                              <Checkbox />
+                                                          </TableCell>
+                                                          <TableCell>{index + 1}</TableCell>
+                                                          <TableCell>{capitalizeFirstLetter(customer.fullname)}</TableCell>
+                                                          <TableCell>
+                                                              {[
+                                                                  capitalizeFirstLetter(customer.purok || ''),
+                                                                  capitalizeFirstLetter(customer.sitio || ''),
+                                                                  capitalizeFirstLetter(customer.barangay || ''),
+                                                              ]
+                                                                  .filter((item) => item.trim() !== '')
+                                                                  .join(', ')}
+                                                          </TableCell>
+                                                          <TableCell>{customer.branch}</TableCell>
+                                                          <TableCell>{customer.plan?.planName}</TableCell>
+                                                          <TableCell>{customer.notes}</TableCell>
+                                                          <TableCell className="flex gap-2">
+                                                              <Button
+                                                                  variant="outline"
+                                                                  size="icon"
+                                                                  className="cursor-pointer hover:text-blue-600"
+                                                                  onClick={() => handleEditCustomer(customer)}
+                                                              >
+                                                                  <Edit className="h-5 w-5" />
+                                                              </Button>
+                                                              <Link
+                                                                  href={`/customers/${customer.id}/info`}
+                                                                  className="border-input bg-background inline-flex h-10 w-10 items-center justify-center rounded-md border p-2 text-sm hover:text-yellow-600"
+                                                              >
+                                                                  <Eye className="h-5 w-5" />
+                                                              </Link>
+                                                          </TableCell>
+                                                      </TableRow>
+                                                  ))}
                                     </TableBody>
                                 </Table>
                             </TabsContent>

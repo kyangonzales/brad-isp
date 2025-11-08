@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\SalesController;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
@@ -106,6 +107,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/monthly/{year}/{month}', [HistoryController::class, 'monthlySales']);
     Route::get('/sales/quarterly/{year}/{quarter}', [HistoryController::class, 'quarterlySales']);
     Route::get('/sales/periods', [HistoryController::class, 'availablePeriods']);
+
+    // Route::get('/salesData/{year}', [HistoryController::class, 'getSalesData']);
+    Route::get('/salesData/{year}', [SalesController::class, 'allSalesData']);
+
 
     Route::get('/print-receipt', [CustomerController::class, 'printReceipt']);
 });

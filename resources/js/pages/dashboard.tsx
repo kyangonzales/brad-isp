@@ -9,7 +9,7 @@ import { capitalizeFirstLetter, formatDate } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { BarChart3, Calendar } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -57,11 +57,17 @@ export default function Dashboard() {
     const [salesByQuarter, setSalesByQuarter] = useState<any[]>([]);
     const [monthlyPerformance, setMonthlyPerformance] = useState<any[]>([]);
     const [yearData, setYearData] = useState<any>(null);
-    const cancelSource = useRef<any>(null);
+    const [allCustomers, setAllCustomers] = useState([]);
+    const [dueCustomersList, setDueCustomersList] = useState([]);
+    const [branchData, setBranchData] = useState<any[]>([]);
 
-    useEffect(() => {
-        fetchCustomerCounts();
-    }, []);
+    const toggleTable = (type: 'all' | 'due') => {
+        setShowTable((prev) => {
+            const next = prev === type ? null : type;
+            setCustomers(next === 'all' ? allCustomers : next === 'due' ? dueCustomersList : []);
+            return next;
+        });
+    };
 
     useEffect(() => {
         if (!yearData) return;
@@ -88,79 +94,78 @@ export default function Dashboard() {
     }, [year, month, quarter, yearData]);
 
     useEffect(() => {
-        if (showTable === 'all') {
-            fetchCustomers('/customers');
-        } else if (showTable === 'due') {
-            fetchCustomers('/customers?filter=due');
-        }
-    }, [showTable]);
-    const fetchCustomers = async (url: string) => {
-        if (cancelSource.current) {
-            cancelSource.current.cancel('Cancelled previous request');
-        }
-
-        cancelSource.current = axios.CancelToken.source();
-
-        try {
-            setLoading(true);
-            const res = await axios.get(url, { cancelToken: cancelSource.current.token });
-            setCustomers(res.data);
-        } catch (err) {
-            if (axios.isCancel(err)) {
-                console.log('Request cancelled:', err.message);
-            } else {
-                console.error('Failed to fetch customers:', err);
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const toggleTable = (type: 'all' | 'due') => {
-        setShowTable((prev) => (prev === type ? null : type));
-    };
-    const fetchCustomerCounts = async () => {
-        try {
-            const res = await axios.get('/countCustomers');
-            console.log('result', res.data.due_customers);
-            setTotalCustomers(res.data.total_customers);
-            setDueCustomers(res.data.due_customers);
-        } catch (err) {
-            console.error('Failed to fetch customer counts:', err);
-        }
-    };
-
-    useEffect(() => {
-        const fetchAllSales = async () => {
+        const fetchInitialData = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get('/salesData/all');
+
+                // ✅ Run all requests in parallel
+                const [salesRes, customersCountRes, allCustomersRes, dueCustomersRes] = await Promise.all([
+                    axios.get('/salesData/all'),
+                    axios.get('/countCustomers'),
+                    axios.get('/customers'),
+                    axios.get('/customers?filter=due'),
+                ]);
+
+                // ========== SALES DATA ==========
+                const res = salesRes;
                 setYearData(res.data);
 
-                // default year = current year if available, else first year
                 const years = Object.keys(res.data);
                 const defaultYear = years.includes(currentYear.toString()) ? currentYear.toString() : years[0];
                 setYear(defaultYear);
 
                 const months: MonthlyData[] = res.data[defaultYear].monthly;
-                const defaultMonth = months.find((m: MonthlyData) => m.month === currentMonth)?.month || months[0].month;
+                const defaultMonth = months.find((m) => m.month === currentMonth)?.month || months[0].month;
                 setMonth(defaultMonth.toString());
 
                 const defaultQuarter = getQuarter(defaultMonth).toString();
                 setQuarter(defaultQuarter);
 
-                // set initial sales
                 setYearlySales(res.data[defaultYear].yearlyTotal);
-                setMonthlySales((res.data[defaultYear].monthly as MonthlyData[]).find((m: MonthlyData) => m.month === defaultMonth)?.total || 0);
+                setMonthlySales((res.data[defaultYear].monthly as MonthlyData[]).find((m) => m.month === defaultMonth)?.total || 0);
                 setQuarterlySales(res.data[defaultYear].quarterly[Number(defaultQuarter)] || 0);
+
+                // ========== CUSTOMER COUNTS ==========
+                const cust = customersCountRes.data;
+                setTotalCustomers(cust.total_customers);
+                setDueCustomers(cust.due_customers);
+
+                // ========== CUSTOMER LISTS ==========
+                setAllCustomers(allCustomersRes.data);
+                setDueCustomersList(dueCustomersRes.data);
+
+                console.log('All Customers:', allCustomersRes.data);
+                const customersData = allCustomersRes.data;
+                setAllCustomers(customersData);
+
+                // ========== BRANCH COUNTS ==========
+                const branchCounts = customersData.reduce((acc: Record<string, number>, c: any) => {
+                    const branch = (c.branch || 'Unknown').trim();
+                    acc[branch] = (acc[branch] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const branchData = Object.keys(branchCounts).map((branch) => ({
+                    name: branch,
+                    value: branchCounts[branch],
+                }));
+
+                const normalize = (str: string) => str.toLowerCase().replace(/ñ/g, 'n').trim();
+
+                const filteredBranchData = branchData.filter((b) => {
+                    const normalized = normalize(b.name);
+                    return normalized === 'penaranda' || normalized === 'general tinio';
+                });
+
+                setBranchData(filteredBranchData);
             } catch (err) {
-                console.error(err);
+                console.error('Error fetching initial data:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchAllSales();
+        fetchInitialData();
     }, []);
 
     return (
@@ -265,6 +270,7 @@ export default function Dashboard() {
                                 </p>
                             </CardContent>
                         </Card>
+
                         {/* 🟨 Quarterly Sales */}
                         <Card className="flex h-40 flex-col justify-between">
                             <CardHeader className="flex flex-row items-center justify-between pb-1">
@@ -323,17 +329,17 @@ export default function Dashboard() {
                         </Card>
                     </div>
                     {/* 📊 Sales Analytics Section */}
-                    <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-3">
-                        {/* 🥧 Left Column – Two Pie Charts stacked */}
-                        <div className="flex flex-col gap-6">
+                    <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-4">
+                        {/* 🥧 Left Column – Three Pie Charts side by side on desktop */}
+                        <div className="flex flex-col gap-2 md:col-span-1">
                             {/* Pie Chart 1 - Sales Distribution */}
                             <Card className="p-4 shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="text-lg font-semibold text-[#1C3694]">Sales Distribution by Quarter</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ResponsiveContainer width="100%" height={180}>
-                                        <PieChart width={200} height={200}>
+                                    <ResponsiveContainer width="100%" height={185}>
+                                        <PieChart>
                                             <Pie data={salesByQuarter} dataKey="value" nameKey="quarter" outerRadius={70} label>
                                                 {salesByQuarter.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -377,14 +383,34 @@ export default function Dashboard() {
                             </Card>
                         </div>
 
-                        {/* 📈 Right Column – Bar Chart */}
-                        <div className="md:col-span-2">
-                            <Card className="h-full p-4 shadow-sm">
+                        {/* 📈 Right Column – Monthly Sales Bar Chart */}
+                        <div className="flex flex-col gap-7 md:col-span-3 md:flex-row">
+                            {/* Pie Chart - Customers per Branch (smaller) */}
+                            <Card className="flex-1 p-4 shadow-sm">
+                                <CardHeader>
+                                    <CardTitle className="text-lg font-semibold text-[#1C3694]">Customers per Branch</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie data={branchData} dataKey="value" nameKey="name" outerRadius={80} label>
+                                                {branchData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                            {/* Bar Chart - Monthly Sales Performance (wider) */}
+                            <Card className="flex-[3] p-4 shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="text-lg font-semibold text-[#1C3694]">Monthly Sales Performance ({year})</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <ResponsiveContainer width="100%" height={400}>
+                                    <ResponsiveContainer width="100%" height={300}>
                                         <BarChart data={monthlyPerformance}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="month" />

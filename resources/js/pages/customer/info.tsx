@@ -243,7 +243,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                 <DialogTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        className={`rounded-lg px-6 py-3 text-base shadow-sm ${
+                                        className={`cursor-pointer rounded-lg px-6 py-3 text-base shadow-sm ${
                                             customerData.state === 'archived'
                                                 ? 'border-gray-500 text-gray-500 hover:bg-gray-100 hover:text-gray-600'
                                                 : 'border-blue-600 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700'
@@ -275,14 +275,14 @@ export default function Info({ customer }: { customer: Customer }) {
                                     </div>
                                     <DialogFooter className="sm:justify-end">
                                         <DialogClose asChild>
-                                            <Button type="button" variant="secondary">
+                                            <Button type="button" variant="secondary" className="cursor-pointer">
                                                 Close
                                             </Button>
                                         </DialogClose>
 
                                         <Button
                                             type="button"
-                                            className="rounded-md bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
+                                            className="cursor-pointer rounded-md bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
                                             onClick={handlePayment}
                                             disabled={isLoading || !paymentAmount}
                                         >
@@ -295,7 +295,7 @@ export default function Info({ customer }: { customer: Customer }) {
                             {/* Generate Receipt Section */}
                             <Button
                                 variant="outline"
-                                className={`rounded-lg px-6 py-3 text-base shadow-sm ${
+                                className={`cursor-pointer rounded-lg px-6 py-3 text-base shadow-sm ${
                                     customerData.state === 'archived'
                                         ? 'border-gray-500 text-gray-500 hover:bg-gray-100 hover:text-gray-600'
                                         : 'border-blue-600 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700'
@@ -311,7 +311,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                 <DialogTrigger asChild>
                                     <Button
                                         onClick={() => setNotes(customerData.notes || '')}
-                                        className={`rounded-lg px-6 py-3 text-base shadow-md ${
+                                        className={`cursor-pointer rounded-lg px-6 py-3 text-base shadow-md ${
                                             customerData.state === 'archived'
                                                 ? 'bg-gray-500 text-white hover:bg-gray-600'
                                                 : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -339,7 +339,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                         />
                                         <DialogFooter className="mt-6 flex justify-end gap-3">
                                             <DialogClose asChild>
-                                                <Button variant="outline" className="rounded-md px-5 py-2">
+                                                <Button variant="outline" className="cursor-pointer rounded-md px-5 py-2">
                                                     Cancel
                                                 </Button>
                                             </DialogClose>
@@ -347,12 +347,12 @@ export default function Info({ customer }: { customer: Customer }) {
                                             <Button
                                                 type="button"
                                                 onClick={() => setNotes('')}
-                                                className="rounded-md bg-red-500 px-5 py-2 text-white hover:bg-red-600"
+                                                className="cursor-pointer rounded-md bg-red-500 px-5 py-2 text-white hover:bg-red-600"
                                             >
                                                 Clear Notes
                                             </Button>
 
-                                            <Button type="submit" className="rounded-md bg-blue-600 px-5 py-2 hover:bg-blue-700">
+                                            <Button type="submit" className="cursor-pointer rounded-md bg-blue-600 px-5 py-2 hover:bg-blue-700">
                                                 Save Notes
                                             </Button>
                                         </DialogFooter>
@@ -366,9 +366,15 @@ export default function Info({ customer }: { customer: Customer }) {
                         {/* TABS */}
                         <Tabs defaultValue="personal" className="mt-4 w-full">
                             <TabsList>
-                                <TabsTrigger value="personal">Personal Info</TabsTrigger>
-                                <TabsTrigger value="history">History</TabsTrigger>
-                                <TabsTrigger value="home">Home Picture</TabsTrigger>
+                                <TabsTrigger value="personal" className="cursor-pointer">
+                                    Personal Info
+                                </TabsTrigger>
+                                <TabsTrigger value="history" className="cursor-pointer">
+                                    History
+                                </TabsTrigger>
+                                <TabsTrigger value="home" className="cursor-pointer">
+                                    Home Picture
+                                </TabsTrigger>
                             </TabsList>
                             <TabsContent value="home">
                                 <CustomerImagesCard images={customerData?.images ?? null} />
@@ -403,7 +409,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                                                 setActionType(customerData.state === 'archived' ? 'activate' : 'archive');
                                                                 setConfirmOpen(true);
                                                             }}
-                                                            className={`rounded-lg p-2 text-sm ${
+                                                            className={`cursor-pointer rounded-lg p-2 text-sm ${
                                                                 customerData.state === 'archived'
                                                                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                                                                     : 'bg-yellow-500 text-white hover:bg-yellow-600'
@@ -419,7 +425,7 @@ export default function Info({ customer }: { customer: Customer }) {
                                                                 setActionType('delete');
                                                                 setConfirmOpen(true);
                                                             }}
-                                                            className="rounded-lg bg-red-600 p-2 text-sm text-white hover:bg-red-700"
+                                                            className="cursor-pointer rounded-lg bg-red-600 p-2 text-sm text-white hover:bg-red-700"
                                                             title="Permanently Delete"
                                                         >
                                                             <Trash2 size={18} />

@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import axios, { AxiosError } from 'axios';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 interface Customer {
     id?: number;
@@ -50,7 +50,7 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
     );
     const [preview1, setPreview1] = useState<string | null>(null);
     const [preview2, setPreview2] = useState<string | null>(null);
-
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [file1, setFile1] = useState<File | null>(null);
     const [file2, setFile2] = useState<File | null>(null);
     const fetchPlans = async () => {
@@ -119,10 +119,9 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
+        setIsSubmitting(true);
         const form = new FormData();
 
-        // ✅ Append all text fields from formData
         form.append('fullname', formData.fullname);
         form.append('phone', formData.phone || '');
         form.append('purok', formData.purok || '');
@@ -133,10 +132,11 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
         form.append('plan_id', formData.plan_id.toString());
         form.append('duedate', formData.duedate || '');
 
-        // ✅ Append images correctly as an array
         if (formData.images && formData.images.length > 0) {
             formData.images.forEach((file) => {
-                form.append('images[]', file);
+                if (file instanceof File) {
+                    form.append('images[]', file);
+                }
             });
         }
 
@@ -154,6 +154,8 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
             onClose();
         } catch (error) {
             console.error('❌ Error saving customer:', error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -364,9 +366,17 @@ export default function CustomerForm({ customerData, onClose, onSave }: Customer
                 <div className="mx-4 flex gap-4 pt-10">
                     <Button
                         type="submit"
+                        disabled={isSubmitting}
                         className="text-md border-1 border-[#1D3795] bg-[#1D3795] p-5 font-bold transition duration-300 hover:bg-[#255a88]"
                     >
-                        Proceed to Submit
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                                Submitting...
+                            </>
+                        ) : (
+                            'Proceed to Submit'
+                        )}
                     </Button>
                 </div>
             </form>

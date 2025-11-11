@@ -94,78 +94,49 @@ export default function Dashboard() {
     }, [year, month, quarter, yearData]);
 
     useEffect(() => {
-        const fetchInitialData = async () => {
+        const fetchDashboardData = async () => {
             try {
                 setLoading(true);
+                const res = await axios.get('/dashboard-data');
 
-                // ✅ Run all requests in parallel
-                const [salesRes, customersCountRes, allCustomersRes, dueCustomersRes] = await Promise.all([
-                    axios.get('/salesData/all'),
-                    axios.get('/countCustomers'),
-                    axios.get('/customers'),
-                    axios.get('/customers?filter=due'),
-                ]);
-
-                // ========== SALES DATA ==========
-                const res = salesRes;
-                setYearData(res.data);
-
-                const years = Object.keys(res.data);
+                // SALES
+                setYearData(res.data.salesData);
+                const years = Object.keys(res.data.salesData);
                 const defaultYear = years.includes(currentYear.toString()) ? currentYear.toString() : years[0];
                 setYear(defaultYear);
 
-                const months: MonthlyData[] = res.data[defaultYear].monthly;
+                const months: MonthlyData[] = res.data.salesData[defaultYear].monthly;
                 const defaultMonth = months.find((m) => m.month === currentMonth)?.month || months[0].month;
                 setMonth(defaultMonth.toString());
+                setQuarter(getQuarter(defaultMonth).toString());
 
-                const defaultQuarter = getQuarter(defaultMonth).toString();
-                setQuarter(defaultQuarter);
+                setYearlySales(res.data.salesData[defaultYear].yearlyTotal);
+                setMonthlySales((res.data.salesData[defaultYear].monthly as MonthlyData[]).find((m) => m.month === defaultMonth)?.total || 0);
+                setQuarterlySales(res.data.salesData[defaultYear].quarterly[Number(getQuarter(defaultMonth))] || 0);
 
-                setYearlySales(res.data[defaultYear].yearlyTotal);
-                setMonthlySales((res.data[defaultYear].monthly as MonthlyData[]).find((m) => m.month === defaultMonth)?.total || 0);
-                setQuarterlySales(res.data[defaultYear].quarterly[Number(defaultQuarter)] || 0);
+                // CUSTOMERS
+                setAllCustomers(res.data.customers);
+                setTotalCustomers(res.data.summary.total_customers);
+                setDueCustomers(res.data.summary.due_customers);
 
-                // ========== CUSTOMER COUNTS ==========
-                const cust = customersCountRes.data;
-                setTotalCustomers(cust.total_customers);
-                setDueCustomers(cust.due_customers);
+                // DUE LIST + BRANCH DATA
+                const dueCustomersLocal = res.data.customers.filter((c: any) => new Date(c.duedate) <= new Date());
+                setDueCustomersList(dueCustomersLocal);
 
-                // ========== CUSTOMER LISTS ==========
-                setAllCustomers(allCustomersRes.data);
-                setDueCustomersList(dueCustomersRes.data);
-
-                console.log('All Customers:', allCustomersRes.data);
-                const customersData = allCustomersRes.data;
-                setAllCustomers(customersData);
-
-                // ========== BRANCH COUNTS ==========
-                const branchCounts = customersData.reduce((acc: Record<string, number>, c: any) => {
+                const branchCounts = res.data.customers.reduce((acc: Record<string, number>, c: any) => {
                     const branch = (c.branch || 'Unknown').trim();
                     acc[branch] = (acc[branch] || 0) + 1;
                     return acc;
                 }, {});
-
-                const branchData = Object.keys(branchCounts).map((branch) => ({
-                    name: branch,
-                    value: branchCounts[branch],
-                }));
-
-                const normalize = (str: string) => str.toLowerCase().replace(/ñ/g, 'n').trim();
-
-                const filteredBranchData = branchData.filter((b) => {
-                    const normalized = normalize(b.name);
-                    return normalized === 'penaranda' || normalized === 'general tinio';
-                });
-
-                setBranchData(filteredBranchData);
+                setBranchData(Object.entries(branchCounts).map(([name, value]) => ({ name, value })));
             } catch (err) {
-                console.error('Error fetching initial data:', err);
+                console.error('Error fetching dashboard data:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchInitialData();
+        fetchDashboardData();
     }, []);
 
     return (

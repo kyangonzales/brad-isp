@@ -9,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\SalesController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -89,7 +90,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/updateNotes/{id}', [CustomerController::class, 'updateNotes']);
     Route::put('/updateState/{id}', [CustomerController::class, 'updateState']);
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->name('customers.destroy');
-    Route::get('/countCustomers', action: [CustomerController::class, 'countCustomers']);
 
     Route::post('/plans', [PlanController::class, 'store']);
     Route::get('/showPlans', [PlanController::class, 'index']);
@@ -103,14 +103,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/users', [RegisteredUserController::class, 'index']);
     Route::put('/userUpdate/{user}', [RegisteredUserController::class, 'update']);
 
-    Route::get('/sales/yearly/{year}', [HistoryController::class, 'yearlySales']);
-    Route::get('/sales/monthly/{year}/{month}', [HistoryController::class, 'monthlySales']);
-    Route::get('/sales/quarterly/{year}/{quarter}', [HistoryController::class, 'quarterlySales']);
-    Route::get('/sales/periods', [HistoryController::class, 'availablePeriods']);
-
-    // Route::get('/salesData/{year}', [HistoryController::class, 'getSalesData']);
-    Route::get('/salesData/{year}', [SalesController::class, 'allSalesData']);
-
+    //Dashboard data
+    Route::get('/dashboard-data', [DashboardController::class, 'getDashboardData']);
 
     Route::get('/print-receipt', [CustomerController::class, 'printReceipt']);
 });

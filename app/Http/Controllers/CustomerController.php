@@ -25,32 +25,17 @@ class CustomerController extends Controller
             'customers' => $customers,
         ]);
     }
-    public function countCustomers()
-    {
-        $total = Customer::count();
-        $due = Customer::whereDate('duedate', '<=', now())->count();
 
-        return response()->json([
-            'total_customers' => $total,
-            'due_customers' => $due,
-        ]);
-    }
-
-    public function index(Request $request)
+    public function index()
     {
-        $query = Customer::with('plan')
+        $customers = Customer::with('plan')
             ->orderBy('duedate', 'asc')
-            ->orderBy('id', 'asc'); // tie-breaker
-
-        // ✨ Kung may filter=due sa query string, i-filter ang mga due customers
-        if ($request->query('filter') === 'due') {
-            $query->whereDate('duedate', '<=', now());
-        }
-
-        $customers = $query->get();
+            ->orderBy('id', 'asc')
+            ->get();
 
         return response()->json($customers);
     }
+
 
     public function store(Request $request)
     {

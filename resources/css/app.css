@@ -160,3 +160,48 @@
         @apply bg-background text-foreground;
     }
 }
+/* ✅ PRINT STYLING for XP-58 thermal printer */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-section,
+  #print-section * {
+    visibility: visible;
+  }
+
+  #print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  @page {
+    size: auto;
+    margin: 0; /* remove top/bottom margins for continuous paper */
+  }
+
+  body {
+    background: none !important;
+  }
+
+  /* Optional: better line print quality */
+  img {
+    max-width: 100%;
+    -webkit-print-color-adjust: exact;
+    margin-right: 2rem;
+  }
+  #header-text{
+    margin-right: 1rem;
+  }
+  #card-content-text{
+    margin-right: 1rem;
+  }
+
+  /* Remove default gaps on print */
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+}

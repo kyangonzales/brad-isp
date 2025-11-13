@@ -193,6 +193,12 @@
     -webkit-print-color-adjust: exact;
     margin-right: 2rem;
   }
+  #signature-section{
+    margin-right: 2rem;
+  }
+    #footer-text{
+    margin-right: 2rem;
+  }
   #header-text{
     margin-right: 1rem;
   }

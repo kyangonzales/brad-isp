@@ -2,9 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatDate } from '@/lib/utils';
-import { Printer, ReceiptText } from 'lucide-react';
-
-// import { useEffect } from 'react';
+import { Printer, ReceiptText, X } from 'lucide-react';
+import { useState } from 'react';
 interface Plan {
     planName: string;
     price: string;
@@ -20,14 +19,26 @@ interface Customer {
     duedate: string;
     plan?: Plan;
 }
-
 export default function PrintReceipt({ customers }: { customers: Customer[] }) {
+    const [visibleCustomers, setVisibleCustomers] = useState(customers);
+
+    const handleRemove = (id: number) => {
+        const updated = visibleCustomers.filter((c) => c.id !== id);
+        setVisibleCustomers(updated);
+
+        // 🧩 Update the URL (no reload)
+        const newIds = updated.map((c) => c.id).join(',');
+        const newUrl = `${window.location.pathname}?ids=${encodeURIComponent(newIds)}`;
+        window.history.replaceState({}, '', newUrl);
+    };
+
     const handlePrint = () => window.print();
 
     const generatedDate = new Date().toLocaleString('en-PH', {
         dateStyle: 'medium',
         timeStyle: 'short',
     });
+
     const toTitleCase = (text: string) => {
         return text
             .toLowerCase()
@@ -35,10 +46,6 @@ export default function PrintReceipt({ customers }: { customers: Customer[] }) {
             .map((word) => word.charAt(0).toLocaleUpperCase('en-PH') + word.slice(1))
             .join(' ');
     };
-
-    // useEffect(() => {
-    //     window.print();
-    // }, []);
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 print:p-0">
@@ -60,10 +67,19 @@ export default function PrintReceipt({ customers }: { customers: Customer[] }) {
                 </Button>
             </div>
 
-            {/* ✅ PRINT SECTION */}
-            <div id="print-section" className="space-y-0">
-                {customers.map((c, i) => (
-                    <div key={c.id} className="mx-auto w-[80mm] print:w-[80mm] print:shadow-none">
+            {/* ✅ RECEIPT GRID */}
+            <div id="print-section" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 print:block">
+                {visibleCustomers.map((c, i) => (
+                    <div key={c.id} className="relative mx-auto w-full sm:w-auto print:w-[80mm] print:shadow-none">
+                        {/* ❌ Remove Button (hidden when printing) */}
+                        <button
+                            onClick={() => handleRemove(c.id)}
+                            className="absolute top-1 right-1 rounded-full bg-red-100 p-1 text-red-500 transition hover:bg-red-200 print:hidden"
+                            title="Remove this receipt"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+
                         <Card className="rounded-none border border-gray-300 shadow-lg print:border-gray-300 print:shadow-none">
                             <CardHeader className="flex flex-col items-center">
                                 <img src="/storage/uly.jpg" alt="Company Banner" className="mb-1 h-16 w-full rounded-md object-cover" />
@@ -88,7 +104,7 @@ export default function PrintReceipt({ customers }: { customers: Customer[] }) {
                                     <strong>Branch:</strong> {c.branch}
                                 </p>
                                 <p>
-                                    <strong>Address:</strong> {toTitleCase([c.purok, c.sitio, c.barangay, c.branch].filter(Boolean).join(', '))}
+                                    <strong>Address:</strong> {toTitleCase([c.purok, c.sitio, c.barangay].filter(Boolean).join(', '))}
                                 </p>
                                 <p>
                                     <strong>Plan:</strong> {c.plan?.planName ?? '—'}
@@ -101,23 +117,29 @@ export default function PrintReceipt({ customers }: { customers: Customer[] }) {
                                 </p>
 
                                 <div className="mt-3 flex flex-col items-center">
-                                    <img src="/storage/signature.png" alt="Authorized Signature" className="h-10 w-auto object-contain" />
-                                    <p className="mt-[-1rem] text-xs font-medium">Marites R. Dela Cruz</p>
-                                    <p className="-mt-1 text-[10px] text-gray-500">Authorized Representative</p>
+                                    <img src="/storage/signature.png" alt="Authorized Signature" className="h-15 w-auto object-contain" />
+                                    <p className="mt-[-1rem] text-xs font-medium" id="signature-section">
+                                        Marites R. Dela Cruz
+                                    </p>
+                                    <p className="-mt-1 text-[10px] text-gray-500" id="signature-section">
+                                        Authorized Representative
+                                    </p>
                                 </div>
                             </CardContent>
 
                             <Separator className="my-1" />
 
-                            <div className="pb-2 text-center text-[11px] text-gray-500">
+                            <div className="pb-2 text-center text-[11px] text-gray-500" id="footer-text">
                                 Thank you for your payment! <br />
+                                For inquiries or additional support, <br />
+                                please feel free to contact us: <br />
                                 Contact: 09183166719 <br />
                                 Email: ulydelacruz8@gmail.com
                             </div>
                         </Card>
 
-                        {/* 🔹 Dotted cut line between receipts */}
-                        {i !== customers.length - 1 && <div className="my-2 border-t border-dotted border-gray-400" />}
+                        {/* Dotted cut line */}
+                        {i !== visibleCustomers.length - 1 && <div className="my-2 border-t border-dotted border-gray-400 print:my-0" />}
                     </div>
                 ))}
             </div>
